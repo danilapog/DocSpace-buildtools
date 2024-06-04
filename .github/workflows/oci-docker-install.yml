@@ -1,0 +1,41 @@
+name: Install OneClickInstall DocSpace with Docker
+
+on:
+  pull_request:
+    types: [opened, reopened, synchronize]
+    paths:
+      - '.github/workflows/oci-docker-install.yml'
+      - 'install/OneClickInstall/install-Docker.sh'
+      - 'install/docker/**'
+
+  workflow_dispatch:
+
+jobs:
+  install-DocSpace-Docker:
+      runs-on: ubuntu-latest
+      steps:
+        - name: Install DocSpace docker
+          run: |
+            wget https://download.onlyoffice.com/docspace/docspace-install.sh
+            bash docspace-install.sh docker --skiphardwarecheck true --noninteractive true
+            sleep 120
+        - name: Check Docker status
+          run: |
+            set -eux
+            for SVC in login api studio-notify notify people-server files files-services \
+            studio backup api-system clear-events backup-background doceditor
+            do
+              if ! $(docker ps | grep docspace-$SVC: | grepsss "(healthy)") ; then
+                  echo "DocSpace-$SVC is broken"
+                  exit 1 
+              fi
+            done
+            for SVC in healthchecks socket ssoauth
+            do 
+              if ! $(docker ps | grep docspace-$SVC: | grep "Up") ; then
+                echo "DocSpace-$SVC is broken"
+                exit 1
+              fi
+            done
+
+                
