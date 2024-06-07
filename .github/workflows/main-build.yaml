@@ -25,5 +25,5 @@ jobs:
     needs: prepare-branches
     uses: danilapog/DocSpace-buildtools/.github/workflows/reusable-build.yml@master
     with:
-      payload-branches: ${{ needs.prepare-branches.outputs.branches }}
+      payload-branches: '${{ needs.prepare-branches.outputs.branches }}'
       dispatch-type: ${{ github.event.action }}
