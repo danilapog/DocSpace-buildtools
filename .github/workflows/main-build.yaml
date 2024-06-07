@@ -19,11 +19,11 @@ jobs:
         env: 
           var: ${{ join(github.event.client_payload.branches) }}
         run: |
-          echo "branches=${var}" >> "$GITHUB_OUTPUT"
+          echo "branches=(${var})" >> "$GITHUB_OUTPUT"
 
   call-reusable-build:
     needs: prepare-branches
     uses: danilapog/DocSpace-buildtools/.github/workflows/reusable-build.yml@master
     with:
-      payload-branches: "${{ needs.prepare-branches.outputs.branches }}"
-      dispatch-type: "${{ github.event.action }}"
+      payload-branches: ${{ needs.prepare-branches.outputs.branches }}
+      dispatch-type: ${{ github.event.action }}
