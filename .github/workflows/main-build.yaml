@@ -19,11 +19,11 @@ jobs:
         env: 
           branches: ${{ join(github.event.client_payload.branches) }}
         run: |
-          echo "branches=${branches}" >> "$GITHUB_OUTPUT"
+          echo "branches=($(echo ${branches} | sed 's!,! !g'))" >> "$GITHUB_OUTPUT"
 
   call-reusable-build:
     needs: prepare-branches
     uses: danilapog/DocSpace-buildtools/.github/workflows/reusable-build.yml@master
     with:
-      payload-branches: ${{ needs.prepare-branches.outputs.branches }}
-      dispatch-type: ${{ github.event.action }}
+      payload-branches: "${{ needs.prepare-branches.outputs.branches }}"
+      dispatch-type: "${{ github.event.action }}"
