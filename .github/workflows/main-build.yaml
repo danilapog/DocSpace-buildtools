@@ -14,7 +14,7 @@ jobs:
     steps:
       - name: Check
         env: 
-          ABOBA: ${{ github.event.client_payload.branches }}
+          ABOBA: ${{ fromJSON(github.event.client_payload.branches) }}
         run: |
           echo ${ABOBA} | jq -R
           #echo "string-branches=$(echo ${{ github.event.client_payload.branches }} | jq -R)" >> "$GITHUB_ENV"
