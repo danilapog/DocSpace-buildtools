@@ -25,7 +25,7 @@ jobs:
     strategy:
       matrix:
         platform: [linux/amd64]
-        branch: ${{ toJSON(inputs.payload-branches) }}
+        branch: ${{ fromJSON(inputs.payload-branches) }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
