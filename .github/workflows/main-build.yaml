@@ -17,7 +17,7 @@ jobs:
       - name: prepare branches
         id: prepare
         env: 
-          var: ${{ join(github.event.client_payload.branches) }}
+          branches: ${{ join(github.event.client_payload.branches) }}
         run: |
           echo "branches=(${var})" >> "$GITHUB_OUTPUT"
 
@@ -25,5 +25,5 @@ jobs:
     needs: prepare-branches
     uses: danilapog/DocSpace-buildtools/.github/workflows/reusable-build.yml@master
     with:
-      payload-branches: "develophotfix/v9.0.1release/v9.0.0"
+      payload-branches: ${{ needs.prepare-branches.outputs.branches }}
       dispatch-type: ${{ github.event.action }}
