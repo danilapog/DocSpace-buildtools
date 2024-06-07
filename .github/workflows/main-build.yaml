@@ -17,7 +17,7 @@ jobs:
       - name: prepare branches
         id: prepare
         env: 
-          var: ${{ join(github.event.client_payload.branches) }}
+          var: ${{ fromJSON(github.event.client_payload.branches) }}
         run: |
           echo "branches=${{ join(github.event.client_payload.branches) }}" >> "$GITHUB_OUTPUT"
 
