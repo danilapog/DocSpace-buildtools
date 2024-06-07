@@ -19,7 +19,7 @@ jobs:
         env: 
           branches: ${{ join(github.event.client_payload.branches) }}
         run: |
-          echo "branches=($(echo ${branches} | sed 's!,! !g'))" >> "$GITHUB_OUTPUT"
+          echo "branches=$(echo ${branches} | sed 's!,! !g')" >> "$GITHUB_OUTPUT"
 
   call-reusable-build:
     needs: prepare-branches
