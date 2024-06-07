@@ -18,7 +18,16 @@ jobs:
         run: |
           echo ${var}
           echo "BRANCHES=${{ join(github.event.client_payload.branches) }}" >> "$GITHUB_ENV"
-        
+
+  prepare-branches1:
+    runs-on: ubuntu-latest
+    steps:
+      - name: prepare branches
+        env: 
+          var: ${{ join(github.event.client_payload.branches) }}
+        run: |
+          echo ${{ env.BRANCHES }}
+          
   call-reusable-build:
     uses: danilapog/DocSpace-buildtools/.github/workflows/reusable-build.yml@master
     with:
