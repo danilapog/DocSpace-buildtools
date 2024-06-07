@@ -1,9 +1,15 @@
 name: 4testing multiarch-cron-build
 
 on:
-  schedule:
-    - cron: '0 20 * * *'
-  #push:
+  workflow_call:
+    secrets:
+      username:
+        required: true
+        description: "User that will trigger job from curl"
+      usertoken:
+        description: "User token"
+        required: true
+         
 
 jobs:
 
@@ -38,7 +44,7 @@ jobs:
 
           curl \
           -X POST \
-          -u "${{ secrets.USERNAME}}:${{secrets.TOKEN}}" \
+          -u "${{ secrets.username }}:${{secrets.usertoken}}" \
           "https://api.github.com/repos/danilapog/DocSpace-buildtools/dispatches" \
           -H "Accept: application/vnd.github.everest-preview+json" \
           --data '{"event_type": "cron-trigger-action", "client_payload": { "branches": ${{ steps.list-branches.outputs.json_output }}}}'
