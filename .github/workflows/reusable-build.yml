@@ -27,11 +27,13 @@ jobs:
       - name: prepare branches
         id: prepare
         env: 
-          branches: (${{ inputs.payload-branches }})
+          branches: ${{ inputs.payload-branches }}
         run: |
-          #branches_array=(${{ inputs.payload-branches }})
-          #echo "${branches_array[@]}"
-          #echo "${branches_array}"
+          echo ${branches[@]}
+          echo ${branches}
+          branches_array=(${{ inputs.payload-branches }})
+          echo "${branches_array[@]}"
+          echo "${branches_array}"
           echo "branches=$(jq -c -n '$ARGS.positional' --args "${branches[@]}")" >> "$GITHUB_OUTPUT"
           
   build:
