@@ -36,8 +36,6 @@ jobs:
     steps:
       - name: prepare branches
         id: prepare
-        env: 
-          branches: ${{ inputs.payload-branches }}
         run: |
           branches_array=(${{ inputs.payload-branches }})
           echo "branches=$(jq -c -n '$ARGS.positional' --args "${branches_array[@]}")" >> "$GITHUB_OUTPUT"
