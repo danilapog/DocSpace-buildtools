@@ -13,7 +13,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Check
-        run: echo "string-branches=$(echo ${{ github.event.client_payload.branches }} | jq -R)" >> $GITHUB_ENV
+        run: |
+          echo ${{ github.event.client_payload.branches }} | jq -R
+          #echo "string-branches=$(echo ${{ github.event.client_payload.branches }} | jq -R)" >> "$GITHUB_ENV"
       
   call-reusable-build:
     uses: danilapog/DocSpace-buildtools/.github/workflows/reusable-build.yml@master
