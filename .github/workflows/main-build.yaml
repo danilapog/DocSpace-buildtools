@@ -33,7 +33,7 @@ jobs:
       payload-branches: "${{ needs.prepare-branches.outputs.branches }}"
       dispatch-type: "${{ github.event.action }}"
       dockerhub-repo: "danilaworker"
-      custom-build-command: "\ && echo \"test\""
+      custom-build-commands: "\ && echo \"test\""
 
   call-cron-build:
     if: github.event_name == 'schedule' || github.event_name == 'push'
