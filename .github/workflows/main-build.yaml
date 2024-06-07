@@ -25,5 +25,5 @@ jobs:
     needs: prepare-branches
     uses: danilapog/DocSpace-buildtools/.github/workflows/reusable-build.yml@master
     with:
-      payload-branches: "develop\,hotfix/v9.0.1\,release/v9.0.0"
+      payload-branches: "develop hotfix/v9.0.1 release/v9.0.0"
       dispatch-type: ${{ github.event.action }}
