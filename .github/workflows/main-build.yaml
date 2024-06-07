@@ -13,9 +13,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Check
-        env: 
-          ARRAY: ${{ github.event.client_payload.branches }}
-        run: echo "ARRAY[@]"
+        run: echo ${{ github.event.client_payload.branches }}
       
   call-reusable-build:
     uses: danilapog/DocSpace-buildtools/.github/workflows/reusable-build.yml@master
