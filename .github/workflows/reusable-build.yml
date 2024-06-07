@@ -11,7 +11,7 @@ on:
         description: "Type, that trigger workflow"
         required: true
         type: string
-      custom-build-command:
+      custom-build-commands:
         description: "Custom command for RUN in Dockerfile"
         required: false
         type: string
@@ -33,11 +33,7 @@ jobs:
         env: 
           branches: ${{ inputs.payload-branches }}
         run: |
-          echo ${branches[@]}
-          echo ${branches}
           branches_array=(${{ inputs.payload-branches }})
-          echo "${branches_array[@]}"
-          echo "${branches_array}"
           echo "branches=$(jq -c -n '$ARGS.positional' --args "${branches_array[@]}")" >> "$GITHUB_OUTPUT"
           
   build:
@@ -86,7 +82,7 @@ jobs:
           fi
           export DOCKER_TAG
           docker buildx bake -f build.yml \
-          --set *.args.CUSTOM_RUN_COMMAND=
+          --set *.args.CUSTOM_BUILD_COMMANDS=${{ inputs.custom-build-commands }} \
           --set *.args.GIT_BRANCH=${{ matrix.branch }} \
           --set *.args.PRODUCT_VERSION=${PRODUCT_VERSION} \
           --set *.args.BUILD_NUMBER=${BUILD_NUMBER} \
