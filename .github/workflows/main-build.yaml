@@ -11,27 +11,19 @@ on:
 jobs:
   prepare-branches:
     runs-on: ubuntu-latest
+    outputs: 
+      branches: ${{ steps.prepare.outputs.branches }}
     steps:
       - name: prepare branches
+        id: prepare
         env: 
           var: ${{ join(github.event.client_payload.branches) }}
         run: |
-          echo ${var}
-          echo "BRANCHES=(${var})" >> "$GITHUB_ENV"
-          echo "value=1" >> "$GITHUB_ENV"
+          echo "branches=${var}" >> "$GITHUB_OUTPUT"
 
-  prepare-branches1:
-    runs-on: ubuntu-latest
-    steps:
-      - name: prepare branches
-        env: 
-          var: ${{ join(github.event.client_payload.branches) }}
-        run: |
-          echo ${{ env.value }}
-          echo ${{ env.BRANCHES }}
-          
   call-reusable-build:
+    needs: prepare-branches
     uses: danilapog/DocSpace-buildtools/.github/workflows/reusable-build.yml@master
     with:
-      payload-branches: ${{ join(github.event.client_payload.branches) }}
+      payload-branches: ${{ needs.prepare-branches.outputs.branches }}
       dispatch-type: ${{ github.event.action }}
