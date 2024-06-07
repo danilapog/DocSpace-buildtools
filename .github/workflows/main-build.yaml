@@ -17,10 +17,10 @@ jobs:
           var: ${{ join(github.event.client_payload.branches) }}
         run: |
           echo ${var}
-          echo "BRANCHES=${{ join(github.event.client_payload.branches) }}" >> $GITHUB_ENV
+          echo "BRANCHES=${{ join(github.event.client_payload.branches) }}" >> "$GITHUB_ENV"
         
   call-reusable-build:
     uses: danilapog/DocSpace-buildtools/.github/workflows/reusable-build.yml@master
     with:
-      payload-branches: ${{ env.BRANCHES }}
+      payload-branches: ${{ join(github.event.client_payload.branches) }}
       dispatch-type: ${{ github.event.action }}
