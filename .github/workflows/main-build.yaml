@@ -13,7 +13,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Check 
-        run: echo "${{ github.event.client_payload.branches }}"
+        run: echo "${{ fromJSON(github.event.client_payload.branches) }}"
       
   call-reusable-build:
     uses: danilapog/DocSpace-buildtools/.github/workflows/reusable-build.yml@master
