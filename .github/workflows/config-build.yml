@@ -1,6 +1,5 @@
 name: 4testing multiarch-config-build
 
-
 on: 
   push:
     branches:
