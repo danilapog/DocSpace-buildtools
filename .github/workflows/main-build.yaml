@@ -9,18 +9,8 @@ on:
       - server-trigger-action
 
 jobs:
-  prepare-branches:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Check
-        env: 
-          ABOBA: ${{ join(github.event.client_payload.branches) }}
-        run: |
-          echo ${ABOBA}
-          #echo "string-branches=$(echo ${{ github.event.client_payload.branches }} | jq -R)" >> "$GITHUB_ENV"
-      
   call-reusable-build:
     uses: danilapog/DocSpace-buildtools/.github/workflows/reusable-build.yml@master
     with:
-      payload-branches: ${{ github.event.client_payload.branches }}
+      payload-branches: ${{ join(github.event.client_payload.branches) }}
       dispatch-type: ${{ github.event.action }}
