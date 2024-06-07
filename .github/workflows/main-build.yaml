@@ -13,8 +13,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Check
+        env: 
+          ABOBA: ${{ github.event.client_payload.branches }}
         run: |
-          echo ${{ github.event.client_payload.branches }} | jq -R
+          echo ${ABOBA} | jq -R
           #echo "string-branches=$(echo ${{ github.event.client_payload.branches }} | jq -R)" >> "$GITHUB_ENV"
       
   call-reusable-build:
