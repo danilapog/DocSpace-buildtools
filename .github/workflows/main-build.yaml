@@ -17,7 +17,8 @@ jobs:
           var: ${{ join(github.event.client_payload.branches) }}
         run: |
           echo ${var}
-          echo "BRANCHES=${var}" >> "$GITHUB_ENV"
+          echo "BRANCHES=(${var})" >> "$GITHUB_ENV"
+          echo "value=1" >> "$GITHUB_ENV"
 
   prepare-branches1:
     runs-on: ubuntu-latest
