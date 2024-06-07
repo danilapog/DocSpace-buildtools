@@ -27,6 +27,7 @@ jobs:
         env: 
           var: ${{ join(github.event.client_payload.branches) }}
         run: |
+          echo ${{ env.value }}
           echo ${{ env.BRANCHES }}
           
   call-reusable-build:
