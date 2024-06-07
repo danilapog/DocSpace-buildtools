@@ -79,7 +79,7 @@ jobs:
         env:
           BUILD_NUMBER: ${{ github.run_number }}
           PLATFORM: ${{ matrix.platform }}
-          BRANCH: ${{ matrifx.branch }}
+          BRANCH: ${{ matrix.branch }}
         run: |
           if [ "${{ matrix.branch }}" = "develop" ]; then
             PRODUCT_VERSION="develop"
