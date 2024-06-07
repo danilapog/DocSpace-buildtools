@@ -10,7 +10,7 @@ on:
 
 jobs:
   call-reusable-build:
-    uses: danilapog/DocSpace-buildtools/.github/workflows/reusabl-build.yml@master
+    uses: danilapog/DocSpace-buildtools/.github/workflows/reusable-build.yml@master
     with:
       payload-branches: ${{ github.event.client_payload.branches }}
       dispatch-type: ${{ github.event.action }}
