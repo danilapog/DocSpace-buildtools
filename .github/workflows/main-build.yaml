@@ -19,7 +19,7 @@ jobs:
         env: 
           var: ${{ join(github.event.client_payload.branches) }}
         run: |
-          echo "branches=${{ join(github.event.client_payload.branches) }}" >> "$GITHUB_OUTPUT"
+          echo "branches=${var}" >> "$GITHUB_OUTPUT"
 
   call-reusable-build:
     needs: prepare-branches
