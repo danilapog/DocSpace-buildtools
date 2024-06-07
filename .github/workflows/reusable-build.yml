@@ -15,10 +15,16 @@ on:
         description: "Custom command for RUN in Dockerfile"
         required: false
         type: string
+        default: "\ && echo \"from build\""
+      dockerhub-repo:
+        description: "Set hub.docker repo owner that will be used for push images"
+        required: true
+        type: string
+        default: onlyoffice
         
 env:
   DOCKER_PATH: "/install/docker"
-  REPO: "onlyoffice"
+  REPO: "${{ inputs.dockerhub-repo }}"
   DOCKER_IMAGE_PREFIX: "4testing-docspace"
   DOCKERFILE: "Dockerfile.app"
 
