@@ -2,6 +2,17 @@ name: 4testing multiarch-cron-build
 
 on:
   workflow_call:
+    inputs:
+      organization:
+        description: "Organization name"
+        required: true
+        type: string
+        default: 'danilapog'
+      repository:
+        description: "Repo where reusable cron is stored"
+        required: true
+        type: string
+        default: 'DocSpace-buildtools'
     secrets:
       username:
         required: true
@@ -47,6 +58,6 @@ jobs:
           curl \
           -X POST \
           -u "${{ secrets.username }}:${{secrets.usertoken}}" \
-          "https://api.github.com/repos/danilapog/DocSpace-buildtools/dispatches" \
+          "https://api.github.com/repos/${{ inputs.organization }}/${{ inputs.repository }}/dispatches" \
           -H "Accept: application/vnd.github.everest-preview+json" \
           --data '{"event_type": "cron-trigger-action", "client_payload": { "branches": ${{ steps.list-branches.outputs.json_output }}}}'
