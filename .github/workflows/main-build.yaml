@@ -38,9 +38,10 @@ jobs:
   call-cron-build:
     if: github.event_name == 'schedule' || github.event_name == 'push'
     uses: danilapog/DocSpace-buildtools/.github/workflows/cron-build.yml@master
+    with:
+      organization: 'danilapog'
+      repository: 'DocSpace-buildtools'
     secrets:
       username: ${{ secrets.USERNAME }}
       usertoken: ${{ secrets.TOKEN }}
-      organization: 'danilapog'
-      repository: 'DocSpace-buildtools'
       
