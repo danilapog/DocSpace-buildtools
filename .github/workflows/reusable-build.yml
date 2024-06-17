@@ -30,7 +30,7 @@ on:
         required: false
         
 env:
-  DOCKER_PATH: "DocSpace-buildtools/install/docker"
+  DOCKER_PATH: "install/docker"
   REPO: "${{ inputs.dockerhub-repo }}"
   DOCKER_IMAGE_PREFIX: "4testing-docspace"
   DOCKERFILE: "Dockerfile.app"
