@@ -23,11 +23,11 @@ on:
         default: onlyoffice
     secrets:
       docker-username:
-        required: true
+        required: false
         description: "hub.docker username"
       docker-usertoken:
         description: "hub.docker user token"
-        required: true
+        required: false
         
 env:
   DOCKER_PATH: "/install/docker"
