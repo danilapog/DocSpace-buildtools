@@ -13,9 +13,9 @@ on:
         type: string
       custom-build-commands:
         description: "Custom command for RUN in Dockerfile"
-        required: false
+        required: true
         type: string
-        default: "&& echo test3"
+        default: "echo placeholder"
       dockerhub-repo:
         description: "Set hub.docker repo owner that will be used for push images"
         required: true
