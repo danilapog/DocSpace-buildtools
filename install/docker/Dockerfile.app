@@ -4,7 +4,7 @@ ARG DOTNET_SDK="mcr.microsoft.com/dotnet/sdk:8.0"
 ARG DOTNET_RUN="mcr.microsoft.com/dotnet/aspnet:8.0"
 
 FROM $DOTNET_SDK AS base
-ARG CUSTOM_BUILD_COMMANDS='echo'
+ARG CUSTOM_BUILD_COMMANDS='echo placeholder'
 ARG RELEASE_DATE="2016-06-22"
 ARG DEBIAN_FRONTEND=noninteractive
 ARG PRODUCT_VERSION=0.0.0
