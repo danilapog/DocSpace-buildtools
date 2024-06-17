@@ -99,7 +99,7 @@ jobs:
           fi
           export DOCKER_TAG
           docker buildx bake -f build.yml \
-          --set *.args.CUSTOM_BUILD_COMMANDS=${{ inputs.custom-build-commands }} \
+          --set *.args.CUSTOM_BUILD_COMMANDS="${{ inputs.custom-build-commands }}" \
           --set *.args.GIT_BRANCH=${BRANCH} \
           --set *.args.PRODUCT_VERSION=${PRODUCT_VERSION} \
           --set *.args.BUILD_NUMBER=${BUILD_NUMBER} \
