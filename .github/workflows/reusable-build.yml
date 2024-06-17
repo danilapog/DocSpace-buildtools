@@ -71,6 +71,8 @@ jobs:
         
       - name: Free Disk Space
         run: |
+          pwd
+          ls -la
           sudo rm -rf /usr/local/lib/android /opt/ghc
           sudo docker image prune --all --force
 
