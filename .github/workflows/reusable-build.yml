@@ -103,9 +103,8 @@ jobs:
           --set *.args.GIT_BRANCH=${BRANCH} \
           --set *.args.PRODUCT_VERSION=${PRODUCT_VERSION} \
           --set *.args.BUILD_NUMBER=${BUILD_NUMBER} \
-          --set *.platform=${PLATFORM} \ 
+          --set *.platform=${PLATFORM} \
           --load
-          #--push
 
           echo "version=${DOCKER_TAG}" >> "$GITHUB_OUTPUT"
         shell: bash
