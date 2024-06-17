@@ -46,7 +46,3 @@ RUN echo "DEBUG1" && \
     git clone --recurse-submodules -b ${GIT_BRANCH} https://github.com/ONLYOFFICE/DocSpace-Server.git ${SRC_PATH}/server && \
     git clone -b ${GIT_BRANCH} https://github.com/ONLYOFFICE/DocSpace-Client.git ${SRC_PATH}/client && \
     git clone -b "master" --depth 1 https://github.com/ONLYOFFICE/ASC.Web.Campaigns.git ${SRC_PATH}/campaigns ${CUSTOM_BUILD_COMMANDS}
-RUN mkdir /app
-
-COPY wait-bin-share-docker-entrypoint.sh /app/docker-entrypoint.sh
-ENTRYPOINT ["./app/docker-entrypoint.sh"]
