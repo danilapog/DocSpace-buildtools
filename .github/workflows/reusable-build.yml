@@ -15,7 +15,7 @@ on:
         description: "Custom command for RUN in Dockerfile"
         required: false
         type: string
-        default: ""
+        default: "&& echo test3"
       dockerhub-repo:
         description: "Set hub.docker repo owner that will be used for push images"
         required: true
