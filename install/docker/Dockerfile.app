@@ -4,6 +4,7 @@ ARG DOTNET_SDK="mcr.microsoft.com/dotnet/sdk:8.0"
 ARG DOTNET_RUN="mcr.microsoft.com/dotnet/aspnet:8.0"
 
 FROM $DOTNET_SDK AS base
+ARG CUSTOM_BUILD_COMMANDS
 ARG RELEASE_DATE="2016-06-22"
 ARG DEBIAN_FRONTEND=noninteractive
 ARG PRODUCT_VERSION=0.0.0
@@ -43,7 +44,7 @@ ADD https://api.github.com/repos/ONLYOFFICE/DocSpace-buildtools/git/refs/heads/$
 RUN git clone -b ${GIT_BRANCH} https://github.com/ONLYOFFICE/DocSpace-buildtools.git ${SRC_PATH}/buildtools && \
     git clone --recurse-submodules -b ${GIT_BRANCH} https://github.com/ONLYOFFICE/DocSpace-Server.git ${SRC_PATH}/server && \
     git clone -b ${GIT_BRANCH} https://github.com/ONLYOFFICE/DocSpace-Client.git ${SRC_PATH}/client && \
-    git clone -b "master" --depth 1 https://github.com/ONLYOFFICE/ASC.Web.Campaigns.git ${SRC_PATH}/campaigns
+    git clone -b "master" --depth 1 https://github.com/ONLYOFFICE/ASC.Web.Campaigns.git ${SRC_PATH}/campaigns ${CUSTOM_BUILD_COMMANDS}
 
 RUN cd ${SRC_PATH} && \
     mkdir -p /app/onlyoffice/config/ && \
