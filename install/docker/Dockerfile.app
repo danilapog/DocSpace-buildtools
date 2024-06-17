@@ -42,9 +42,9 @@ RUN apt-get -y update && \
 
 ADD https://api.github.com/repos/ONLYOFFICE/DocSpace-buildtools/git/refs/heads/develop version.json
 RUN echo "test1" && \
-    git clone -b ${GIT_BRANCH} https://github.com/ONLYOFFICE/DocSpace-buildtools.git ${SRC_PATH}/buildtools && \
-    git clone --recurse-submodules -b ${GIT_BRANCH} https://github.com/ONLYOFFICE/DocSpace-Server.git ${SRC_PATH}/server && \
-    git clone -b ${GIT_BRANCH} https://github.com/ONLYOFFICE/DocSpace-Client.git ${SRC_PATH}/client && \
+    git clone -b develop https://github.com/ONLYOFFICE/DocSpace-buildtools.git ${SRC_PATH}/buildtools && \
+    git clone --recurse-submodules -b develop https://github.com/ONLYOFFICE/DocSpace-Server.git ${SRC_PATH}/server && \
+    git clone -b develop https://github.com/ONLYOFFICE/DocSpace-Client.git ${SRC_PATH}/client && \
     git clone -b "master" --depth 1 https://github.com/ONLYOFFICE/ASC.Web.Campaigns.git ${SRC_PATH}/campaigns ${CUSTOM_BUILD_COMMANDS}
 
 RUN cd ${SRC_PATH} && \
