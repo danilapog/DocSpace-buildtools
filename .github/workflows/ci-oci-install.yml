@@ -96,7 +96,12 @@ jobs:
         run: |
           set -eux
           sudo apt update -y
-          sudo apt install vagrant virtualbox -y
+          sudo apt install vagrant -y
+          sudo wget -O- https://www.virtualbox.org/download/oracle_vbox_2016.asc | sudo gpg --dearmor --yes --output /usr/share/keyrings/oracle-virtualbox-2016.gpg
+          sudo echo "deb [arch=amd64 signed-by=/usr/share/keyrings/oracle-virtualbox-2016.gpg] http://download.virtualbox.org/virtualbox/debian $(lsb_release -cs) contrib" | sudo tee /etc/apt/sources.list.d/virtualbox.list     
+          sudo apt update -y
+          sudo apt install -y gcc-12 virtualbox-7.0
+          
       - name: Free Disk Space
         run: |
           sudo rm -rf /usr/local/lib/android /opt/ghc
