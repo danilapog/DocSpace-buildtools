@@ -5,6 +5,7 @@ Vagrant.configure("2") do |config|
         v.memory = ENV['RAM'].to_i  # Set the RAM for libvirt
         v.cpus = ENV['CPU'].to_i    # Set the number of CPUs
         v.features = ["apic"]       # Enable IOAPIC equivalent in libvirt
+        v.uri = "qemu:///session"
     end
 
     config.vm.define 'ubuntu'
