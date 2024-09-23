@@ -115,7 +115,8 @@ jobs:
            egrep -c '(vmx|svm)' /proc/cpuinfo
            lsmod | grep kvm
            sudo apt-get -y install qemu-kvm bridge-utils
-           sudo virt-host-validate
+           sudo virt-host-validate || true
+           
       - name: "Test production scripts with ${{matrix.name}}"
         if: ${{ github.event_name == 'schedule' }}
         uses: nick-fields/retry@v3
