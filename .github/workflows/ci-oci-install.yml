@@ -100,10 +100,6 @@ jobs:
           sudo apt-get update -y
           sudo apt-get install vagrant virtualbox-7.0 -y
           
-      - name: Free Disk Space
-        run: |
-          sudo rm -rf /usr/local/lib/android /opt/ghc
-          sudo docker image prune --all --force
       - name: "Test production scripts with ${{matrix.name}}"
         if: ${{ github.event_name == 'schedule' }}
         uses: nick-fields/retry@v3
