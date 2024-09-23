@@ -108,6 +108,7 @@ jobs:
           vagrant plugin install vagrant-libvirt
           sudo usermod -aG libvirt $(whoami)
           sudo systemctl restart libvirtd
+          ls -l /var/run/libvirt/libvirt-sock
           
       - name: "Test production scripts with ${{matrix.name}}"
         if: ${{ github.event_name == 'schedule' }}
