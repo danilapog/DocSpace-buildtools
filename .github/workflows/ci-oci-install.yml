@@ -106,6 +106,8 @@ jobs:
           export VAGRANT_DEFAULT_PROVIDER=libvirt
           echo "VAGRANT_DEFAULT_PROVIDER=libvirt" >> $GITHUB_ENV
           vagrant plugin install vagrant-libvirt
+          sudo usermod -aG libvirt $(whoami)
+          sudo systemctl restart libvirtd
           
       - name: "Test production scripts with ${{matrix.name}}"
         if: ${{ github.event_name == 'schedule' }}
