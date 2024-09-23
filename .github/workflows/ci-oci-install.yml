@@ -107,7 +107,6 @@ jobs:
           vagrant plugin list
           export VAGRANT_DEFAULT_PROVIDER=virtualbox
           echo "VAGRANT_DEFAULT_PROVIDER=virtualbox" >> $GITHUB_ENV
-          sudo systemctl disable libvirtd
           
       - name: "Test production scripts with ${{matrix.name}}"
         if: ${{ github.event_name == 'schedule' }}
