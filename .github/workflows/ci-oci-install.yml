@@ -102,6 +102,7 @@ jobs:
           wget -O- https://www.virtualbox.org/download/oracle_vbox_2016.asc | sudo gpg --yes --output /usr/share/keyrings/oracle-virtualbox-2016.gpg --dearmor
           sudo apt-get update -y
           sudo apt-get install vagrant virtualbox-7.0 -y
+          sudo vagrant plugin uninstall vagrant-libvirt || true
           
       - name: "Test production scripts with ${{matrix.name}}"
         if: ${{ github.event_name == 'schedule' }}
