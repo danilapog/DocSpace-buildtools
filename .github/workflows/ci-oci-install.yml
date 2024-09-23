@@ -109,7 +109,13 @@ jobs:
           sudo usermod -aG libvirt $(whoami)
           sudo systemctl restart libvirtd
           ls -l /var/run/libvirt/libvirt-sock
-          
+
+      - name: check
+        run: |
+           egrep -c '(vmx|svm)' /proc/cpuinfo
+           lsmod | grep kvm
+           sudo apt-get -y install qemu-kvm bridge-utils
+           sudo virt-host-validate
       - name: "Test production scripts with ${{matrix.name}}"
         if: ${{ github.event_name == 'schedule' }}
         uses: nick-fields/retry@v3
