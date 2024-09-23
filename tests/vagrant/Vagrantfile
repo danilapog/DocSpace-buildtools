@@ -2,9 +2,9 @@ Vagrant.configure("2") do |config|
     config.vm.box = "#{ENV['DISTR']}/#{ENV['OS']}"
 
     config.vm.provider "libvirt" do |v|
-             v.customize ["modifyvm", :id, "--memory", "#{ENV['RAM']}"] #<= total RAM.
-             v.customize ["modifyvm", :id, "--cpus", "#{ENV['CPU']}"] #<= total CPU.
-             v.customize ["modifyvm", :id, "--ioapic", "on"]
+        v.memory = ENV['RAM'].to_i  # Set the RAM for libvirt
+        v.cpus = ENV['CPU'].to_i    # Set the number of CPUs
+        v.features = ["apic"]       # Enable IOAPIC equivalent in libvirt
     end
 
     config.vm.define 'ubuntu'
