@@ -26,11 +26,13 @@ Source2:        https://github.com/ONLYOFFICE/%{product}-server/archive/master.t
 Source3:        https://github.com/ONLYOFFICE/document-templates/archive/main/community-server.tar.gz#/DocStore.tar.gz
 Source4:        https://github.com/ONLYOFFICE/dictionaries/archive/master.tar.gz#/dictionaries.tar.gz
 Source5:        https://github.com/ONLYOFFICE/ASC.Web.Campaigns/archive/master.tar.gz#/campaigns.tar.gz
-Source6:        %{product}.rpmlintrc
+Source6:        https://github.com/ONLYOFFICE/%{product}-plugins/archive/master.tar.gz#/plugins.tar.gz
+Source7:        %{product}.rpmlintrc
 
 BuildRequires:  nodejs >= 18.0
 BuildRequires:  yarn
 BuildRequires:  dotnet-sdk-8.0
+BuildRequires:  unzip
 
 BuildRoot:      %_tmppath/%name-%version-%release.%arch
 
@@ -48,6 +50,7 @@ Requires:       %name-migration-runner = %version-%release
 Requires:       %name-notify = %version-%release
 Requires:       %name-people-server = %version-%release
 Requires:       %name-proxy = %version-%release
+Requires:       %name-plugins = %version-%release
 Requires:       %name-radicale = %version-%release
 Requires:       %name-socket = %version-%release
 Requires:       %name-ssoauth = %version-%release
@@ -71,7 +74,8 @@ tar -xf %{SOURCE2} --transform='s,^[^/]\+,server,'       -C %{_builddir}
 tar -xf %{SOURCE3} --transform='s,^[^/]\+,DocStore,'     -C %{_builddir}/server/products/ASC.Files/Server
 tar -xf %{SOURCE4} --transform='s,^[^/]\+,dictionaries,' -C %{_builddir}/client/common/Tests/Frontend.Translations.Tests
 tar -xf %{SOURCE5} --transform='s,^[^/]\+,campaigns,'    -C %{_builddir}
-cp %{SOURCE6} .
+tar -xf %{SOURCE6} --transform='s,^[^/]\+,plugins,'      -C %{_builddir}
+cp %{SOURCE7} .
 
 %include build.spec
 

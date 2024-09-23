@@ -1,7 +1,7 @@
 %install
 rm -rf %{buildroot}
 mkdir -p "%{buildroot}/usr/lib/systemd/system/"
-mkdir -p "%{buildroot}/%{_var}/www/onlyoffice/Data"
+mkdir -p "%{buildroot}/%{_var}/www/onlyoffice/Data/Studio/webplugins/"
 mkdir -p "%{buildroot}%{buildpath}/Tools/radicale/plugins/"
 mkdir -p "%{buildroot}%{buildpath}/studio/ASC.Web.Studio/"
 mkdir -p "%{buildroot}%{buildpath}/studio/ASC.Web.Api/"
@@ -77,3 +77,4 @@ cp -rf %{_builddir}/buildtools/config/nginx/includes/onlyoffice*.conf "%{buildro
 cp -rf %{_builddir}/buildtools/config/nginx/html/*.html "%{buildroot}%{_sysconfdir}/openresty/html/"
 cp -rf %{_builddir}/buildtools/config/* "%{buildroot}%{_sysconfdir}/onlyoffice/%{product}/"
 cp -rf %{_builddir}/buildtools/install/docker/config/fluent-bit.conf "%{buildroot}%{_sysconfdir}/onlyoffice/%{product}/"
+cp -rf %{_builddir}/plugins/publish/* "%{buildroot}%{_var}/www/Data/Studio/webplugins/"
