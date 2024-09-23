@@ -95,13 +95,10 @@ jobs:
       - name: Get update and install vagrant
         run: |
           set -eux
-          sudo apt update -y
-          sudo apt install vagrant -y
-          sudo wget -O- https://www.virtualbox.org/download/oracle_vbox_2016.asc | sudo gpg --dearmor --yes --output /usr/share/keyrings/oracle-virtualbox-2016.gpg
-          sudo echo "deb [arch=amd64 signed-by=/usr/share/keyrings/oracle-virtualbox-2016.gpg] http://download.virtualbox.org/virtualbox/debian $(lsb_release -cs) contrib" | sudo tee /etc/apt/sources.list.d/virtualbox.list     
-          sudo apt update -y
-          sudo apt install -y gcc-12 virtualbox-7.0
-          sudo usermod  -a -G vboxusers $USER
+          echo "deb [arch=amd64 signed-by=/usr/share/keyrings/oracle-virtualbox-2016.gpg] https://download.virtualbox.org/virtualbox/debian $(lsb_release -sc) contrib" | sudo tee /etc/apt/sources.list.d/virtualbox.list 
+          wget -O- https://www.virtualbox.org/download/oracle_vbox_2016.asc | sudo gpg --yes --output /usr/share/keyrings/oracle-virtualbox-2016.gpg --dearmor
+          sudo apt-get update -y
+          sudo apt-get install vagrant virtualbox-7.0 -y
           
       - name: Free Disk Space
         run: |
