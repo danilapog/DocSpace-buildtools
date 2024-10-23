@@ -2,13 +2,7 @@ name: fix fedora40
 
 on:
   push:
-
-  workflow_dispatch:
-    inputs:
-      fedora40:
-         type: boolean
-         description: 'Fedora 40'
-         default: true
+    branches: ['bugfix/package-build']
 
 jobs:
   vagrant-up:
