@@ -65,6 +65,7 @@ function resize() {
 }
 
 main() {
+  resize
   check_hw
 }
 
