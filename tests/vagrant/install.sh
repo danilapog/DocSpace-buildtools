@@ -114,10 +114,44 @@ echo "Filesystem after resizing:"
 df -h /
 }
 
+function prepare_vm() {
+  if [ -f /etc/os-release ]; then
+    source /etc/os-release
+    case $ID in
+      ubuntu)
+          [[ "${TEST_REPO_ENABLE}" == 'true' ]] && add-repo-deb
+          ;;
+
+      debian)
+          [ "$VERSION_CODENAME" == "bookworm" ] && apt-get update -y && apt install -y curl gnupg
+          apt-get remove postfix -y && echo "${COLOR_GREEN}☑ PREPAVE_VM: Postfix was removed${COLOR_RESET}"
+          [[ "${TEST_REPO_ENABLE}" == 'true' ]] && add-repo-deb
+          ;;
+
+      fedora)
+          [[ "${TEST_REPO_ENABLE}" == 'true' ]] && echo "THIS IS FEDORA"
+          ;;
+
+      centos)
+          [ "$VERSION_ID" == "8" ] && sed -i 's|^mirrorlist=|#&|; s|^#baseurl=http://mirror.centos.org|baseurl=http://vault.centos.org|' /etc/yum.repos.d/CentOS-*
+          [[ "${TEST_REPO_ENABLE}" == 'true' ]] && add-repo-rpm
+          yum -y install centos*-release 
+          ;;
+
+      *)
+          echo "${COLOR_RED}Failed to determine Linux dist${COLOR_RESET}"; exit 1
+          ;;
+    esac
+  else
+      echo "${COLOR_RED}File /etc/os-release doesn't exist${COLOR_RESET}"; exit 1
+  fi
+}
+
 main() {
-  check_hw
-  resize
-  check_hw
+  OS=$(hostnamectl | grep "Operating System" | awk '{print $3}')
+  VERSION=$(hostnamectl | grep "Operating System" | awk '{print $4}')
+  echo ${VERSION}
+  prepare_vm
 }
 
 main
