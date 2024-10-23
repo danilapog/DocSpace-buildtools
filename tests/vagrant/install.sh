@@ -149,6 +149,7 @@ function prepare_vm() {
 }
 
 main() {
+  hostnamectl
   OS=$(hostnamectl | grep "Operating System" | awk '{print $3}')
   VERSION=$(hostnamectl | grep "Operating System" | awk '{print $4}')
   echo ${VERSION}
