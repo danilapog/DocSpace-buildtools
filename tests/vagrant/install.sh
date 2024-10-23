@@ -67,7 +67,8 @@ function check_hw() {
 }
 
 function resize() {
-  sudo parted /dev/sda
+  sudo parted /dev/sda resizepart 2 100% --script
+  sudo resize2fs /dev/sda2
 }
 
 main() {
