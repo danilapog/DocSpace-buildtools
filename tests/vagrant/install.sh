@@ -115,6 +115,7 @@ function resize_fedora_disk() {
 }
 
 function prepare_vm() {
+  echo "inside prepare_vm function"
   if [ -f /etc/os-release ]; then
     source /etc/os-release
     case $ID in
@@ -129,8 +130,8 @@ function prepare_vm() {
           ;;
 
       fedora)
-          [[ "${TEST_REPO_ENABLE}" == 'true' ]] && echo "THIS IS FEDORA"
-          [[ $(hostnamectl | grep "Operating System" | awk '{print $4}') == "40" ]] && resize_fedora_disk 
+          echo "THIS IS FEDORA"
+          [[ "$(hostnamectl | grep "Operating System" | awk '{print $5}') == "40" ]]" && resize_fedora_disk 
           ;;
 
       centos)
@@ -150,10 +151,8 @@ function prepare_vm() {
 
 main() {
   hostnamectl
-  OS=$(hostnamectl | grep "Operating System" | awk '{print $3}')
-  VERSION=$(hostnamectl | grep "Operating System" | awk '{print $4}')
   echo ${VERSION}
-  echo ${OS}
+  [[ "$(hostnamectl | grep "Operating System" | awk '{print $5}') == "40" ]]" && echo "THIS IS FEDORA40"
   prepare_vm
 }
 
