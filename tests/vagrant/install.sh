@@ -152,7 +152,7 @@ function prepare_vm() {
 main() {
   hostnamectl
   echo ${VERSION}
-  [[ "$(hostnamectl | grep "Operating System" | awk '{print $5}') == "40" ]]" && echo "THIS IS FEDORA40"
+  [[ $(hostnamectl | grep "Operating System" | awk '{print $5}') == "40" ]] && echo "THIS IS FEDORA40"
   prepare_vm
 }
 
