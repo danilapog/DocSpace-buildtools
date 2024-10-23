@@ -66,52 +66,52 @@ function check_hw() {
     echo "${COLOR_RED} $(df -h) ${COLOR_RESET}"
 }
 
-function resize() {
+function resize_fedora_disk() {
   # Print current disk layout
-echo "Current disk layout:"
-lsblk
+  echo "Current disk layout:"
+  lsblk
 
-# Install required tools if they are not available
-if ! command -v parted &> /dev/null; then
-  echo "parted not found, installing..."
-  sudo dnf install -y parted
-fi
+  # Install required tools if they are not available
+  if ! command -v parted &> /dev/null; then
+    echo "parted not found, installing..."
+    sudo dnf install -y parted
+  fi
 
-if ! command -v growpart &> /dev/null; then
-  echo "growpart not found, installing..."
-  sudo dnf install -y cloud-utils-growpart
-fi
+  if ! command -v growpart &> /dev/null; then
+    echo "growpart not found, installing..."
+    sudo dnf install -y cloud-utils-growpart
+  fi
 
-# Fix GPT table to use all available space if needed
-echo "Fixing GPT to use all available space..."
-echo -e "fix\n" | sudo parted /dev/sda
+  # Fix GPT table to use all available space if needed
+  echo "Fixing GPT to use all available space..."
+  echo -e "fix\n" | sudo parted /dev/sda
 
-# Use growpart to resize the partition /dev/sda2
-echo "Resizing partition /dev/sda2 using growpart..."
-sudo growpart /dev/sda 2
+  # Use growpart to resize the partition /dev/sda2
+  echo "Resizing partition /dev/sda2 using growpart..."
+  sudo growpart /dev/sda 2
 
-# Check the filesystem type before resizing
-FSTYPE=$(df -T | grep '/$' | awk '{print $2}')
+  # Check the filesystem type before resizing
+  FSTYPE=$(df -T | grep '/$' | awk '{print $2}')
 
-# Resize the filesystem based on the filesystem type (xfs or ext4)
-if [ "$FSTYPE" == "xfs" ]; then
-  echo "Resizing XFS filesystem on /dev/sda2..."
-  sudo xfs_growfs /
-elif [ "$FSTYPE" == "ext4" ]; then
-  echo "Resizing ext4 filesystem on /dev/sda2..."
-  sudo resize2fs /dev/sda2
-else
-  echo "Unsupported filesystem type: $FSTYPE"
-  exit 1
-fi
+  # Resize the filesystem based on the filesystem type (xfs or ext4)
+  if [ "$FSTYPE" == "xfs" ]; then
+    echo "Resizing XFS filesystem on /dev/sda2..."
+    sudo xfs_growfs /
+  elif [ "$FSTYPE" == "ext4" ]; then
+    echo "Resizing ext4 filesystem on /dev/sda2..."
+   sudo resize2fs /dev/sda2
+  else
+   echo "Unsupported filesystem type: $FSTYPE"
+    exit 1
+  fi
 
-# Print the new disk layout
-echo "Disk layout after resizing:"
-lsblk
+  # Print the new disk layout
+  echo "Disk layout after resizing:"
+  lsblk
 
-# Verify new available space
-echo "Filesystem after resizing:"
-df -h /
+  # Verify new available space
+  echo "Filesystem after resizing:"
+  df -h /
 }
 
 function prepare_vm() {
@@ -130,6 +130,7 @@ function prepare_vm() {
 
       fedora)
           [[ "${TEST_REPO_ENABLE}" == 'true' ]] && echo "THIS IS FEDORA"
+          [[ "$(hostnamectl | grep "Operating System" | awk '{print $4}')" == "40" ]] && resize_fedora40_disk 
           ;;
 
       centos)
