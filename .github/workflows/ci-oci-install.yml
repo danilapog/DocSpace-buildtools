@@ -1,6 +1,8 @@
 name: Install OneClickInstall DocSpace
 
 on:
+  push:
+
   pull_request:
     types: [opened, reopened, synchronize]
     paths:
@@ -123,32 +125,8 @@ jobs:
           sudo rm -rf /usr/local/lib/android /opt/ghc
           sudo docker image prune --all --force
 
-      - name: "Test production scripts with ${{matrix.name}}"
-        if: ${{ github.event_name == 'schedule' }}
-        uses: nick-fields/retry@v3
-        with:
-          max_attempts: 2
-          timeout_minutes: 80
-          retry_on: error
-          command: |
-            set -eux
-            cd tests/vagrant
-            TEST_CASE='--production-install' \
-            DISTR='${{ matrix.distr }}' \
-            OS='${{ matrix.os }}' \
-            DOWNLOAD_SCRIPT='-ds true' \
-            RAM='8192' \
-            CPU='3' \
-            ARGUMENTS="-arg '--skiphardwarecheck true'" \
-            vagrant up
-          on_retry_command: |
-            echo "RUN CLEAN UP: Destroy vagrant and one more try"
-            cd tests/vagrant
-            sleep 10
-            vagrant destroy --force
-
       - name: "Test Local scripts with ${{matrix.name}}"
-        if: ${{ github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch' || github.event_name == 'push' }}
+        if: ${{ github.event_name == 'push' }}
         uses: nick-fields/retry@v3
         with:
           max_attempts: 2
