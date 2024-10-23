@@ -46,6 +46,5 @@ jobs:
             RAM='8192' \
             CPU='3' \
             DOWNLOAD_SCRIPT='-ds false' \
-            TEST_REPO='-tr true' \
             ARGUMENTS="-arg '--skiphardwarecheck true --localscripts true'" \
             vagrant up
