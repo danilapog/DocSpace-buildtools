@@ -52,6 +52,7 @@ function common::get_colors() {
 #   None
 #############################################################################################
 function check_hw() {
+    echo "${COLOR_RED} $(lsblk) ${COLOR_RESET}"
     echo "${COLOR_RED} $(free -h) ${COLOR_RESET}"
     echo "${COLOR_RED} $(nproc) ${COLOR_RESET}"
     echo "${COLOR_RED} $(df -h) ${COLOR_RESET}"
