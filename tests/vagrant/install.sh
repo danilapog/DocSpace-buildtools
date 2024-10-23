@@ -130,7 +130,7 @@ function prepare_vm() {
 
       fedora)
           [[ "${TEST_REPO_ENABLE}" == 'true' ]] && echo "THIS IS FEDORA"
-          [[ "$(hostnamectl | grep "Operating System" | awk '{print $4}')" == "40" ]] && resize_fedora40_disk 
+          [[ $(hostnamectl | grep "Operating System" | awk '{print $4}') == "40" ]] && resize_fedora_disk 
           ;;
 
       centos)
@@ -152,6 +152,7 @@ main() {
   OS=$(hostnamectl | grep "Operating System" | awk '{print $3}')
   VERSION=$(hostnamectl | grep "Operating System" | awk '{print $4}')
   echo ${VERSION}
+  echo ${OS}
   prepare_vm
 }
 
