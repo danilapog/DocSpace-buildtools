@@ -165,6 +165,7 @@ function prepare_vm() {
       fedora)
           [[ "${TEST_REPO_ENABLE}" == 'true' ]] && add-repo-rpm
           [ $(hostnamectl | grep "Operating System" | awk '{print $5}') == "40" ] && resize_fedora_disk
+          [ $(hostnamectl | grep "Operating System" | awk '{print $5}') == "39" ] && resize_fedora_disk
           ;;
 
       centos)
