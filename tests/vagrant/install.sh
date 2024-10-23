@@ -131,7 +131,7 @@ function prepare_vm() {
 
       fedora)
           echo "THIS IS FEDORA"
-          [[ "$(hostnamectl | grep "Operating System" | awk '{print $5}') == "40" ]]" && resize_fedora_disk 
+          [ $(hostnamectl | grep "Operating System" | awk '{print $5}') == "40" ] && resize_fedora_disk 
           ;;
 
       centos)
@@ -152,7 +152,7 @@ function prepare_vm() {
 main() {
   hostnamectl
   echo ${VERSION}
-  [[ $(hostnamectl | grep "Operating System" | awk '{print $5}') == "40" ]] && echo "THIS IS FEDORA40"
+  [ $(hostnamectl | grep "Operating System" | awk '{print $5}') == "40" ] && echo "THIS IS FEDORA40"
   prepare_vm
 }
 
