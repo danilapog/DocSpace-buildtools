@@ -67,8 +67,7 @@ function check_hw() {
 }
 
 function resize() {
-  sudo parted /dev/sda print free
-  sudo parted /dev/sda resizepart 2 100%
+  sudo parted /dev/sda
 }
 
 main() {
