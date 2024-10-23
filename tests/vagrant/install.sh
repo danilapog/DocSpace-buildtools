@@ -69,9 +69,6 @@ function check_hw() {
 function resize() {
   sudo parted /dev/sda print free
   sudo parted /dev/sda resizepart 2 100%
-
-  sudo lvextend -l +100%FREE /dev/disk/root
-  sudo xfs_growfs /dev/disk/root
 }
 
 main() {
