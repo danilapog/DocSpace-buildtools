@@ -1573,4 +1573,3 @@ if [[ $DELETE == true ]]; then
 else
 	start_installation
 fi
-
