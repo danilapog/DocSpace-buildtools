@@ -63,7 +63,7 @@ INSTALL_ELASTICSEARCH="true";
 INSTALL_FLUENT_BIT="true";
 INSTALL_PRODUCT="true";
 UPDATE="false";
-
+DELETE="false";
 HUB="";
 USERNAME="";
 PASSWORD="";
@@ -500,7 +500,15 @@ while [ "$1" != "" ]; do
 				shift
 			fi
 		;;
-		
+
+		-d| --delete)
+			if [ "$2" != "" ]; then
+				DELETE=$2
+            	shift
+			fi
+
+        ;;
+
 		-off | --offline )
 			if [ "$2" != "" ]; then
 				OFFLINE_INSTALLATION=$2
@@ -529,10 +537,10 @@ while [ "$1" != "" ]; do
 			echo "      -docsv, --docsversion             document server version"
 			echo "      -docsurl, --docsurl               $PACKAGE_SYSNAME docs server address (example http://$PACKAGE_SYSNAME-docs-address:8083)"
 			echo "      -jh, --jwtheader                  defines the http header that will be used to send the JWT"
-			echo "      -js, --jwtsecret                  defines the secret key to validate the JWT in the request"	
-			echo "      -irbt, --installrabbitmq          install or update rabbitmq (true|false)"	
+			echo "      -js, --jwtsecret                  defines the secret key to validate the JWT in the request"
+			echo "      -irbt, --installrabbitmq          install or update rabbitmq (true|false)"
 			echo "      -irds, --installredis             install or update redis (true|false)"
-			echo "      -imysql, --installmysql           install or update mysql (true|false)"		
+			echo "      -imysql, --installmysql           install or update mysql (true|false)"
 			echo "      -ies, --installelastic            install or update elasticsearch (true|false)"
 			echo "      -ifb, --installfluentbit          install or update fluent-bit (true|false)"
 			echo "      -du, --dashboadrsusername         login for authorization in /dashboards/"
@@ -564,6 +572,7 @@ while [ "$1" != "" ]; do
 			echo "      -noni, --noninteractive           auto confirm all questions (true|false)"
 			echo "      -dbm, --databasemigration         database migration (true|false)"
 			echo "      -ms, --makeswap                   make swap file (true|false)"
+			echo "      -d, --delete                      delete all DocSpace containers and network (true|false)"
 			echo "      -?, -h, --help                    this help"
 			echo
 			echo "    Install all the components without document server:"
@@ -592,6 +601,45 @@ while [ "$1" != "" ]; do
 	esac
 	shift
 done
+
+delete_containers() {
+    read -p "Do you want to delete the following services: mysql, rabbitmq, redis, opensearch? (yY/nN): " choice
+
+    if [[ "$choice" =~ ^[yY]$ ]]; then
+        SERVICES=("db" "rabbitmq" "redis" "opensearch")
+    else
+        echo "Skipping removal of mysql, rabbitmq, redis, and opensearch."
+        SERVICES=()
+    fi
+
+    SERVICES+=("${PRODUCT}" "ds" "identity" "proxy" "fluent" "healthchecks" "dashboards" "notify")
+
+    for service in "${SERVICES[@]}"; do
+        yml_file="$BASE_DIR/$service.yml"
+        if [[ -f "$yml_file" ]]; then
+            echo "Removing $service and its volumes..."
+            docker-compose -f "$yml_file" down -v || echo "Failed to remove $service."
+        fi
+    done
+
+    if docker network ls | grep -q "${NETWORK_NAME}"; then
+        docker network rm "${NETWORK_NAME}" && network_removed=true || echo "Failed to remove network ${NETWORK_NAME}."
+    fi
+
+    read -p "Do you want to retain data (keep .env file)? (yY/nN): " keep_data
+
+    if [[ "$network_removed" == "true" && -d "$BASE_DIR" ]]; then
+        if [[ "$keep_data" =~ ^[yY]$ ]]; then
+            echo "Retaining .env file and removing other contents in $BASE_DIR..."
+            find "$BASE_DIR" -mindepth 1 ! -name ".env" -exec rm -rf {} +
+        else
+            echo "Removing directory $BASE_DIR..."
+            rm -rf "$BASE_DIR" || echo "Failed to remove directory $BASE_DIR."
+        fi
+    fi
+
+    echo "DocSpace containers and volumes deleted successfully."
+}
 
 root_checking () {
 	PID=$$
@@ -1520,4 +1568,9 @@ start_installation () {
 	exit 0;
 }
 
-start_installation
+if [[ $DELETE == true ]]; then
+    delete_containers
+else
+	start_installation
+fi
+
