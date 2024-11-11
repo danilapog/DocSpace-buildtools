@@ -602,7 +602,7 @@ while [ "$1" != "" ]; do
 	shift
 done
 
-delete_containers() {
+delete() {
     read -p "Do you want to delete the following services: mysql, rabbitmq, redis, opensearch? (yY/nN): " choice
 
     if [[ "$choice" =~ ^[yY]$ ]]; then
@@ -1569,7 +1569,7 @@ start_installation () {
 }
 
 if [[ $DELETE == true ]]; then
-    delete_containers
+    delete
 else
 	start_installation
 fi
