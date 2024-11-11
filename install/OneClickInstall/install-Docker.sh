@@ -614,22 +614,22 @@ delete() {
 
     SERVICES+=("${PRODUCT}" "ds" "identity" "proxy" "fluent" "healthchecks" "dashboards" "notify")
 
-    for service in "${SERVICES[@]}"; do
-        yml_file="$BASE_DIR/$service.yml"
-        if [[ -f "$yml_file" ]]; then
-            echo "Removing $service and its volumes..."
-            docker-compose -f "$yml_file" down -v || echo "Failed to remove $service."
+    for SERVICE in "${SERVICES[@]}"; do
+        YML_FILE="$BASE_DIR/$SERVICE.yml"
+        if [[ -f "$YML_FILE" ]]; then
+            echo "Removing $SERVICE and its volumes..."
+            docker-compose -f "$YML_FILE" down -v || echo "Failed to remove $SERVICE."
         fi
     done
 
     if docker network ls | grep -q "${NETWORK_NAME}"; then
-        docker network rm "${NETWORK_NAME}" && network_removed=true || echo "Failed to remove network ${NETWORK_NAME}."
+        docker network rm "${NETWORK_NAME}" && NETWORK_REMOVED=true || echo "Failed to remove network ${NETWORK_NAME}."
     fi
 
-    read -p "Do you want to retain data (keep .env file)? (yY/nN): " keep_data
+    read -p "Do you want to retain data (keep .env file)? (yY/nN): " KEEP_DATA
 
-    if [[ "$network_removed" == "true" && -d "$BASE_DIR" ]]; then
-        if [[ "$keep_data" =~ ^[yY]$ ]]; then
+    if [[ "$NETWORK_REMOVED" == "true" && -d "$BASE_DIR" ]]; then
+        if [[ "$KEEP_DATA" =~ ^[yY]$ ]]; then
             echo "Retaining .env file and removing other contents in $BASE_DIR..."
             find "$BASE_DIR" -mindepth 1 ! -name ".env" -exec rm -rf {} +
         else
