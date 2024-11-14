@@ -253,6 +253,8 @@ jsonData = openJsonFile(filePath)
 updateJsonData(jsonData,"$.Redis.Hosts.[0].Host", REDIS_CONNECTION_HOST)
 updateJsonData(jsonData,"$.Redis.Hosts.[0].Port", REDIS_PORT)
 updateJsonData(jsonData,"$.Redis.Database", REDIS_DB)
+with open('env_variables.txt', 'a') as env_file:
+    env_file.write(f"REDIS_DB={REDIS_DB}\n")
 jsonData["Redis"].update(REDIS_USER_NAME) if REDIS_USER_NAME is not None else None
 jsonData["Redis"].update(REDIS_PASSWORD) if REDIS_PASSWORD is not None else None
 writeJsonFile(filePath, jsonData)
