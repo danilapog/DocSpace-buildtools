@@ -8,11 +8,21 @@ x-service:
     #- /app/onlyoffice/CommunityServer/data:/app/onlyoffice/data
     - app_data:/app/onlyoffice/data
 
+x-healthcheck: &x-healthcheck
+  test: curl --fail http://127.0.0.1 || exit 1
+  interval: 60s
+  retries: 5
+  start_period: 20s
+  timeout: 10s
+
 services:
   onlyoffice-health-checks-ui:
     <<: *x-service-base
     image: "${HUB}${REPO}/${DOCKER_IMAGE_PREFIX}-healthchecks:${DOCKER_TAG}"
     container_name: ${HELTHCHECKS_HOST}
+    healthcheck:
+      <<: *x-healthcheck
+      test: curl --fail http://${SERVICE_HELTHCHECKS}/health/ || exit 1
 
 networks:
   default:
