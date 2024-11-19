@@ -20,6 +20,30 @@ Vagrant.configure("2") do |config|
     end
 
     config.vm.provision "file", source: "../../../DocSpace-buildtools/install/common/systemd/build.sh", destination: "/tmp/docspace/build.sh"
+
+    # Add a provisioner to expand the partition and filesystem
+    config.vm.provision "shell", inline: <<-SHELL
+    set -eux
+    if command -v growpart >/dev/null 2>&1; then
+      echo "growpart is already installed"
+    else
+      if [ -f /etc/debian_version ]; then
+        sudo apt-get update
+        sudo apt-get install -y cloud-guest-utils
+      elif [ -f /etc/redhat-release ]; then
+        sudo yum install -y cloud-utils-growpart
+      fi
+    fi
+
+    sudo growpart /dev/sda 1
+
+    if [ -f /etc/debian_version ]; then
+      sudo resize2fs /dev/sda1
+    elif [ -f /etc/redhat-release ]; then
+      sudo xfs_growfs /
+    fi
+    SHELL
+
     config.vm.provision "shell", path: './install.sh', :args => "#{ENV['DOWNLOAD_SCRIPT']} #{ENV['TEST_REPO']} #{ENV['ARGUMENTS']}"
 
     # Prevent SharedFoldersEnableSymlinksCreate errors
