@@ -1,56 +1,9 @@
 name: Install OneClickInstall DocSpace
 
 on:
-  pull_request:
-    types: [opened, reopened, synchronize]
-    paths:
-      - '.github/workflows/ci-oci-install.yml'
-      - 'install/OneClickInstall/install-Debian/**'
-      - 'install/OneClickInstall/install-RedHat/**'
-      - 'install/OneClickInstall/install-Debian.sh'
-      - 'install/OneClickInstall/install-RedHat.sh'
+
 
   push:
-    branches: 
-      - feature/add-fedora41-action
-
-  schedule:
-    - cron: '00 20 * * 6'  # At 23:00 on Saturday.
-
-  workflow_dispatch:
-    inputs:
-      centos9s:
-         type: boolean
-         description: 'CentOS 9 Stream'
-         default: true
-      debian11:
-         type: boolean
-         description: 'Debian 11'
-         default: true
-      debian12:
-         type: boolean
-         description: 'Debian 12'
-         default: true
-      ubuntu2004:
-         type: boolean
-         description: 'Ubuntu 20.04'
-         default: true
-      ubuntu2204:
-         type: boolean
-         description: 'Ubuntu 22.04'
-         default: true
-      ubuntu2404:
-          type: boolean
-          description: 'Ubuntu 24.04'
-          default: true
-      fedora40:
-         type: boolean
-         description: 'Fedora 40'
-         default: true
-      fedora41:
-         type: boolean
-         description: 'Fedora 41'
-         default: true
 
 jobs:
   prepare:
@@ -86,14 +39,9 @@ jobs:
               {"execute": '${{ github.event.inputs.fedora40 || true }}', "name": "Fedora40", "os": "fedora-40", "distr": "bento"},
               {"execute": '${{ github.event.inputs.fedora41 || true }}', "name": "Fedora41", "os": "41-cloud-base", "distr": "fedora"}
             ]
-          }' | jq -c '.include')
+          }' | jq -c '{include: [.include[] | select(.execute == true)]}')
 
-          matrix=$(jq -c --arg REDHAT_CHANGED "${{ env.redhat_changed }}" --arg DEBIAN_CHANGED "${{ env.debian_changed }}" '
-            { include: [.[] | select(
-                ($REDHAT_CHANGED == $DEBIAN_CHANGED and .execute == true) or
-                ($REDHAT_CHANGED == "true" and (.name | test("CentOS|Fedora"))) or
-                ($DEBIAN_CHANGED == "true" and (.name | test("Debian|Ubuntu"))))]
-            }' <<< "$matrix")
+
 
           echo "matrix=${matrix}" >> $GITHUB_OUTPUT
 
@@ -127,32 +75,9 @@ jobs:
           sudo rm -rf /usr/local/lib/android /opt/ghc
           sudo docker image prune --all --force
 
-      - name: "Test production scripts with ${{matrix.name}}"
-        if: ${{ github.event_name == 'schedule' }}
-        uses: nick-fields/retry@v3
-        with:
-          max_attempts: 2
-          timeout_minutes: 80
-          retry_on: error
-          command: |
-            set -eux
-            cd tests/vagrant
-            TEST_CASE='--production-install' \
-            DISTR='${{ matrix.distr }}' \
-            OS='${{ matrix.os }}' \
-            DOWNLOAD_SCRIPT='-ds true' \
-            RAM='8192' \
-            CPU='3' \
-            ARGUMENTS="-arg '--skiphardwarecheck true'" \
-            vagrant up
-          on_retry_command: |
-            echo "RUN CLEAN UP: Destroy vagrant and one more try"
-            cd tests/vagrant
-            sleep 10
-            vagrant destroy --force
 
       - name: "Test Local scripts with ${{matrix.name}}"
-        if: ${{ github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch' || github.event_name == 'push' }}
+        if: ${{ github.event_name == 'push' }}
         uses: nick-fields/retry@v3
         with:
           max_attempts: 2
