@@ -7,6 +7,12 @@ Vagrant.configure("2") do |config|
              v.customize ["modifyvm", :id, "--ioapic", "on"]
     end
 
+    # Increase disk size for Fedora 41
+    if ENV['OS'] == '41-cloud-base' && ENV['DISTR'] == 'fedora'
+        v.customize ["modifyhd", :id, "--resize", "50000"]
+      end
+    end
+
     config.vm.define 'ubuntu'
 
     config.vm.hostname = "host4test"
@@ -16,6 +22,23 @@ Vagrant.configure("2") do |config|
     end
 
     config.vm.provision "file", source: "../../../DocSpace-buildtools/install/common/systemd/build.sh", destination: "/tmp/docspace/build.sh"
+
+
+  # Expand the filesystem within the VM for Fedora 41
+    if ENV['OS'] == '41-cloud-base' && ENV['DISTR'] == 'fedora'
+     # Provision shell script to expand filesystem
+      config.vm.provision "shell", privileged: true, inline: <<-SHELL
+      # Install required utilities
+      sudo dnf install -y cloud-utils-growpart
+
+      # Expand the partition
+      sudo growpart /dev/sda 1
+
+      # Expand the filesystem (assuming XFS)
+      sudo xfs_growfs /
+      SHELL
+    end
+
     config.vm.provision "shell", path: './install.sh', :args => "#{ENV['DOWNLOAD_SCRIPT']} #{ENV['TEST_REPO']} #{ENV['ARGUMENTS']}"
 
     # Prevent SharedFoldersEnableSymlinksCreate errors
