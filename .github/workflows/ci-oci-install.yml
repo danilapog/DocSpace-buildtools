@@ -10,6 +10,10 @@ on:
       - 'install/OneClickInstall/install-Debian.sh'
       - 'install/OneClickInstall/install-RedHat.sh'
 
+  push:
+    branches: 
+      - feature/action-fedora
+
   schedule:
     - cron: '00 20 * * 6'  # At 23:00 on Saturday.
 
