@@ -38,7 +38,7 @@ jobs:
               {"execute": '${{ github.event.inputs.fedora39 || true }}', "name": "Fedora39", "os": "39-cloud-base", "distr": "fedora"},
               {"execute": '${{ github.event.inputs.fedora40 || true }}', "name": "Fedora40", "os": "fedora-40", "distr": "bento"}
             ]
-          }' | jq -c '.include')
+          }' | jq -c '{include: [.include[] | select(.execute == true)]}')
 
           echo "matrix=${matrix}" >> $GITHUB_OUTPUT
 
