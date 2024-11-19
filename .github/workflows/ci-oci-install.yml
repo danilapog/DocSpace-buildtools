@@ -122,10 +122,6 @@ jobs:
           sudo apt update -y
           sudo apt install vagrant virtualbox -y
 
-      - name: Install vagrant-disksize plugin
-        run: |
-          vagrant plugin install vagrant-disksize
-
       - name: Free Disk Space
         run: |
           sudo rm -rf /usr/local/lib/android /opt/ghc
