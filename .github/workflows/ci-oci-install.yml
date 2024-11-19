@@ -83,7 +83,7 @@ jobs:
               {"execute": '${{ github.event.inputs.ubuntu2004 || true }}', "name": "Ubuntu20.04", "os": "ubuntu2004", "distr": "generic"},
               {"execute": '${{ github.event.inputs.ubuntu2204 || true }}', "name": "Ubuntu22.04", "os": "ubuntu2204", "distr": "generic"},
               {"execute": '${{ github.event.inputs.ubuntu2404 || true }}', "name": "Ubuntu24.04", "os": "ubuntu-24.04", "distr": "bento"},
-              {"execute": '${{ github.event.inputs.fedora40 || true }}', "name": "Fedora40", "os": "fedora-40", "distr": "bento"}
+              {"execute": '${{ github.event.inputs.fedora40 || true }}', "name": "Fedora40", "os": "fedora-40", "distr": "bento"},
               {"execute": '${{ github.event.inputs.fedora41 || true }}', "name": "Fedora41", "os": "41-cloud-base", "distr": "fedora"}
             ]
           }' | jq -c '.include')
