@@ -168,7 +168,7 @@ while [ "$1" != "" ]; do
 
 		-mk | --machinekey )
 			if [ "$2" != "" ]; then
-				CORE_MACHINEKEY=$2
+				CORE_MACHINEKEY=$(generate_key "machinekey" "12" "$2")
 				shift
 			fi
 		;;
@@ -196,7 +196,7 @@ while [ "$1" != "" ]; do
 
 		-dp | --dashboadrspassword )
 			if [ "$2" != "" ]; then
-				DASHBOARDS_PASSWORD=$2
+				DASHBOARDS_PASSWORD=$(generate_key "dashboards-password" "20" "$2")
 				shift
 			fi
 		;;
@@ -245,23 +245,6 @@ while [ "$1" != "" ]; do
 	esac
 	shift
 done
-
-set_core_machinekey () {
-	if [[ -f $APP_DIR/.private/machinekey ]] || [[ -n $CORE_MACHINEKEY ]]; then
-		CORE_MACHINEKEY=${CORE_MACHINEKEY:-$(cat $APP_DIR/.private/machinekey)};
-	else
-		CORE_MACHINEKEY=$(cat /dev/urandom | tr -dc A-Za-z0-9 | head -c 12);
-		if [ "$DIST" = "RedHat" ]; then
-			echo $CORE_MACHINEKEY > $APP_DIR/.private/machinekey
-			chmod o-rwx $APP_DIR/.private/machinekey
-		fi
-	fi
-
-	save_undefined_param "${USER_CONF}" "core.machinekey" "${CORE_MACHINEKEY}"
-	save_undefined_param "${USER_CONF}" "core['base-domain']" "${APP_HOST}" "rewrite"
-	save_undefined_param "${APP_DIR}/apisystem.${ENVIRONMENT}.json" "core.machinekey" "${CORE_MACHINEKEY}"
-	save_undefined_param "${APP_DIR}/apisystem.${ENVIRONMENT}.json" "core['base-domain']" "${APP_HOST}" "rewrite"
-}
 
 install_json() {
 	if ! command -v json; then
@@ -718,16 +701,7 @@ setup_dashboards() {
 	echo -n "Configuring dashboards... "
 
 	DASHBOARDS_CONF_PATH="/etc/opensearch-dashboards/opensearch_dashboards.yml"
-
-	if [[ -n ${DASHBOARDS_PASSWORD} ]]; then
-		echo "${DASHBOARDS_PASSWORD}" > ${APP_DIR}/.private/dashboards-password
-	elif [[ -f ${APP_DIR}/.private/dashboards-password ]]; then
-		DASHBOARDS_PASSWORD=$(cat ${APP_DIR}/.private/dashboards-password);
-	else
-		DASHBOARDS_PASSWORD=$(echo "$(cat /dev/urandom | tr -dc A-Za-z0-9 | head -c 20)" | tee ${APP_DIR}/.private/dashboards-password)
-	fi
-
-	chmod o-rwx $APP_DIR/.private/dashboards-password
+	DASHBOARDS_PASSWORD=${DASHBOARDS_PASSWORD:-$(generate_key "dashboards-password" 20)}
 
 	# configure login&pass for Dashboards, used by Nginx HTTP Basic Authentication
 	echo "${DASHBOARDS_USERNAME:-"onlyoffice"}:$(openssl passwd -6 -stdin <<< "${DASHBOARDS_PASSWORD}")" > /etc/openresty/.htpasswd_dashboards
@@ -806,8 +780,30 @@ setup_rabbitmq() {
 	echo "OK"
 }
 
+generate_key() {
+    local FILE_NAME=$1
+    local KEY_LENGTH=${2:-12}
+    local KEY=${3:-}
+
+    if [[ -z "${KEY}" ]]; then
+        if [[ -f ${APP_DIR}/.private/${FILE_NAME} ]]; then
+            KEY=$(cat ${APP_DIR}/.private/${FILE_NAME})
+        else
+            KEY=$(tr -dc A-Za-z0-9 </dev/urandom | head -c ${KEY_LENGTH})
+        fi
+    fi
+	
+    echo ${KEY} > ${APP_DIR}/.private/${FILE_NAME}
+    chmod o-rwx ${APP_DIR}/.private/${FILE_NAME}
+
+    echo ${KEY}
+}
+
 product_configuration(){
 	echo -n "Configuring ${PRODUCT}... "
+	
+	save_undefined_param "${USER_CONF}" "core['base-domain']" "${APP_HOST}" "rewrite"
+	save_undefined_param "${APP_DIR}/apisystem.${ENVIRONMENT}.json" "core['base-domain']" "${APP_HOST}" "rewrite"
 
 	${PACKAGE_MANAGER} ${PACKAGE_SYSNAME}-documentserver-ee >/dev/null 2>&1 && ENVIRONMENT=${ENVIRONMENT:-"enterprise"} ||
 	${PACKAGE_MANAGER} ${PACKAGE_SYSNAME}-documentserver-de >/dev/null 2>&1 && ENVIRONMENT=${ENVIRONMENT:-"developer"} ||
@@ -829,7 +825,12 @@ product_configuration(){
 	echo "SPRING_PROFILES_ACTIVE=prod,server" >> "$APP_DIR/systemd.env"
 	chmod o-rwx "$APP_DIR/systemd.env"
 
-	set_core_machinekey
+	CORE_MACHINEKEY=${CORE_MACHINEKEY:-$(generate_key "machinekey")}
+	save_undefined_param "${USER_CONF}" "core.machinekey" "${CORE_MACHINEKEY}"
+	save_undefined_param "${APP_DIR}/apisystem.${ENVIRONMENT}.json" "core.machinekey" "${CORE_MACHINEKEY}"
+
+	echo "SPRING_APPLICATION_SIGNATURE_SECRET=${SIGNATURE_SECRET:-$(generate_key "signature")}" >> "$APP_DIR/systemd.env"
+	echo "SPRING_APPLICATION_ENCRYPTION_SECRET=${ENCRYPTION_SECRET:-$(generate_key "encryption")}" >> "$APP_DIR/systemd.env"
 
 	echo "OK"
 }
