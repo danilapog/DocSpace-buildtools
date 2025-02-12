@@ -16,7 +16,7 @@ jobs:
     strategy:
       matrix:
         platform: [linux/amd64]
-        branch: ${{ fromJson(inputs.branches) }}
+        branch: develop
     steps:
       - name: Checkout
         uses: actions/checkout@v3
