@@ -1,7 +1,7 @@
 name: Install OneClickInstall DocSpace
 
 on:
-
+  push:
   workflow_dispatch:
     inputs:
       deb_build:
@@ -58,11 +58,14 @@ jobs:
         run: |
           matrix=$(echo '{
             "include": [
-              {"execute": '${{ github.event.inputs.centos10s || true }}', "name": "Centos10s", "os": "stream10", "distr": "centos"}
+              {
+              "name": "CentOS7",
+              "os": "stream10",
+              "distr": "centos"
+              }
             ]
-          }')            
-        
-          echo "matrix=$matrix" >> $GITHUB_OUTPUT
+          }' | jq -c '{include: [.include[] | select(.execute == true)]}')
+          echo "matrix=${matrix}" >> $GITHUB_OUTPUT
 
   vagrant-up:
     name: "Test DocSpace with ${{ matrix.name}}"
