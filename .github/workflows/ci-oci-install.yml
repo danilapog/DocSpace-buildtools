@@ -16,7 +16,7 @@ on:
          type: boolean
          description: 'CentOS 9 Stream'
          default: false
-      censo10s:
+      centos10s:
          type: boolean
          description: 'CentOS 10 Stream'
          default: true
@@ -59,6 +59,7 @@ jobs:
           matrix=$(echo '{
             "include": [
               {
+              "execute": '${{ github.event.inputs.cento10s || true }}',
               "name": "CentOS7",
               "os": "stream10",
               "distr": "centos"
