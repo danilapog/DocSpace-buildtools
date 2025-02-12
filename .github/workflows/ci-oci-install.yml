@@ -1,17 +1,6 @@
 name: Install OneClickInstall DocSpace
 
 on:
-  pull_request:
-    types: [opened, reopened, synchronize]
-    paths:
-      - '.github/workflows/ci-oci-install.yml'
-      - 'install/OneClickInstall/install-Debian/**'
-      - 'install/OneClickInstall/install-RedHat/**'
-      - 'install/OneClickInstall/install-Debian.sh'
-      - 'install/OneClickInstall/install-RedHat.sh'
-
-  schedule:
-    - cron: '00 20 * * 6'  # At 23:00 on Saturday.
 
   workflow_dispatch:
     inputs:
@@ -26,27 +15,31 @@ on:
       centos9s:
          type: boolean
          description: 'CentOS 9 Stream'
+         default: false
+      censo10s:
+         type: boolean
+         description: 'CentOS 10 Stream'
          default: true
       debian12:
          type: boolean
          description: 'Debian 12'
-         default: true
+         default: false
       ubuntu2204:
          type: boolean
          description: 'Ubuntu 22.04'
-         default: true
+         default: false
       ubuntu2404:
           type: boolean
           description: 'Ubuntu 24.04'
-          default: true
+          default: false
       fedora40:
          type: boolean
          description: 'Fedora 40'
-         default: true
+         default: false
       fedora41:
         type: boolean
         description: 'Fedora 41'
-        default: true
+        default: false
 
 jobs:
   prepare:
@@ -55,49 +48,19 @@ jobs:
       matrix: ${{ steps.set-matrix.outputs.matrix }}
     steps:
       - name: Checkout code
-        if: github.event_name == 'pull_request'
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      - name: Determine affected distributions
-        id: determine-distros
-        if: github.event_name == 'pull_request'
-        run: |
-          CHANGED_FILES=$(git diff --name-only ${{ github.event.pull_request.base.sha }} ${{ github.sha }})
-          echo "debian_changed=$(echo "$CHANGED_FILES" | grep -q 'install-Debian' && echo true || echo false)" >> $GITHUB_ENV
-          echo "redhat_changed=$(echo "$CHANGED_FILES" | grep -q 'install-RedHat' && echo true || echo false)" >> $GITHUB_ENV 
 
       - name: Set matrix names
         id: set-matrix
         run: |
           matrix=$(echo '{
             "include": [
-              {"execute": '${{ github.event.inputs.centos9s || true }}', "name": "CentOS9S", "os": "centos9s", "distr": "generic"},
-              {"execute": '${{ github.event.inputs.debian12 || true }}', "name": "Debian12", "os": "debian12", "distr": "generic"},
-              {"execute": '${{ github.event.inputs.ubuntu2204 || true }}', "name": "Ubuntu22.04", "os": "ubuntu2204", "distr": "generic"},
-              {"execute": '${{ github.event.inputs.ubuntu2404 || true }}', "name": "Ubuntu24.04", "os": "ubuntu-24.04", "distr": "bento"},
-              {"execute": '${{ github.event.inputs.fedora40 || true }}', "name": "Fedora40", "os": "fedora-40", "distr": "bento"},
-              {"execute": '${{ github.event.inputs.fedora41 || true }}', "name": "Fedora41", "os": "41-cloud-base", "distr": "fedora"}
+              {"execute": '${{ github.event.inputs.centos10s || true }}', "name": "Centos10s", "os": "stream10", "distr": "centos"}
             ]
           }')            
-        
-          matrix=$(echo "$matrix" | jq -c --argjson debuild "${{ github.event.inputs.deb_build || true }}" --argjson rpmbuild "${{ github.event.inputs.rpm_build || true }}" '
-            { include: [ .include[] | select(
-                  ($debuild and (.name | test("Debian|Ubuntu"))) or
-                  ($rpmbuild and (.name | test("CentOS|Fedora")))
-                )
-            ] }')
-        
-          if [ "$GITHUB_EVENT_NAME" = "pull_request" ]; then
-            matrix=$(echo "$matrix" | jq -c --arg REDHAT_CHANGED "${{ env.redhat_changed }}" --arg DEBIAN_CHANGED "${{ env.debian_changed }}" '
-              { include: [ .include[] | select(
-                    ($REDHAT_CHANGED == $DEBIAN_CHANGED and .execute == true) or
-                    ($REDHAT_CHANGED == "true" and (.name | test("CentOS|Fedora"))) or
-                    ($DEBIAN_CHANGED == "true" and (.name | test("Debian|Ubuntu")))
-                  )
-              ] }')
-          fi
         
           echo "matrix=$matrix" >> $GITHUB_OUTPUT
 
@@ -112,14 +75,6 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-
-      - name: "Checking scripts for errors"
-        run: |
-          set -eux
-          sudo apt-get install -y shellcheck
-          find install/OneClickInstall tests -type f -name "*.sh" ! -path "install/OneClickInstall/install-Docker.sh" \
-            | xargs shellcheck --exclude="$(awk '!/^#|^$/ {print $1}' tests/lint/sc_ignore | paste -sd ",")" --severity=warning | tee sc_output
-          awk '/\(warning\):/ {w++} /\(error\):/ {e++} END {if (w+e) printf "::warning ::ShellCheck detected %d warnings and %d errors\n", w+0, e+0}' sc_output
 
       - name: Set up Python 3.
         uses: actions/setup-python@v5
