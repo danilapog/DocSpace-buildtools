@@ -58,7 +58,7 @@ jobs:
             DOCKER_TAG=${PRODUCT_VERSION}.${{ github.run_number }}
 
           export DOCKER_TAG=1.0.0
-          docker buildx bake -f build.yml \
+          docker buildx bake -m 6g -f build.yml \
           --set *.args.GIT_BRANCH=develop \
           --set *.args.PRODUCT_VERSION=${PRODUCT_VERSION} \
           --set *.args.BUILD_NUMBER=123123123 \
