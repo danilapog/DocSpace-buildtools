@@ -38,6 +38,7 @@ env:
     HCP_CLIENT_ID: ${{ secrets.HCP_CLIENT_ID }}
     HCP_CLIENT_SECRET: ${{ secrets.HCP_CLIENT_SECRET }}
     BOX_VERSION: ${{ github.event.inputs.box-version }}
+    VAGRANT_ORG: danilapog
 
 jobs:
   prepare:
@@ -89,14 +90,7 @@ jobs:
       - name: Free Disk Space
         run: |
           sudo rm -rf /usr/local/lib/android /opt/ghc
-          sudo docker image prune --all --force
-
-      - name: Login Vagrant cloud
-        run: |
-           # Get hcp token before login 
-           hcp auth login --client-id=${HCP_CLIENT_ID} --client-secret=${HCP_CLIENT_SECRET}
-           export ACCESS_TOKEN=$(hcp auth print-access-token)
-           vagrant cloud auth login --token ${ACCESS_TOKEN}       
+          sudo docker image prune --all --force       
 
       - name: Rebuild boxes
         uses: nick-fields/retry@v3
@@ -116,15 +110,9 @@ jobs:
                     ARGUMENTS="-arg '--skiphardwarecheck true --makeswap false'" \
                     vagrant up
                   sleep 300
-                  vagrant package --output repacked_${{ matrix.name }}.box
-                  vagrant cloud publish \
-                    onlyoffice/docspace-${{ matrix.name }} \
-                    ${BOX_VERSION} virtualbox repacked_${{ matrix.name }}.box \
-                    -d "Box with pre-installed DocSpace ${BOX_VERSION}" \
-                    --version-description "DocSpace ${BOX_VERSION}" \
-                    --release --short-description "Boxes for update testing" \
-                    --force \
-                    --no-private
+                  vagrant package --output docspace-${{ matrix.name }}.box
+                  mv repacked_${{ matrix.name }}.box ./tests/vagrant/docspace-${{ matrix.name }}.box
+                  bash ./tests/vagrant/publish.sh
           on_retry_command: |
                 set -eux
 
