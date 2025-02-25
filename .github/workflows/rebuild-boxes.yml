@@ -67,7 +67,7 @@ jobs:
           echo "matrix=${matrix}" >> $GITHUB_OUTPUT
 
   rebuild-boxes:
-    name: "Rebuild DocSpace box"
+    name: "Rebuild ${{ matrix.name}} ${{ github.event.inputs.box-version }}"
     runs-on: ubuntu-latest
     needs: prepare
     strategy:
