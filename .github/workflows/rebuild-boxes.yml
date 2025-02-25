@@ -3,6 +3,7 @@ name: Rebuild DocSpace vagrant boxes
 run-name: "Rebuild DocSpace boxes version: ${{ github.event.inputs.box-version }}"
 
 on:
+  push:
   workflow_dispatch:
     inputs:
       box-version:
