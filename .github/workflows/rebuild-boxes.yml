@@ -34,16 +34,18 @@ on:
          description: 'Ubuntu 22.04'
          default: true
 
-env:
-    HCP_CLIENT_ID: ${{ secrets.HCP_CLIENT_ID }}
-    HCP_CLIENT_SECRET: ${{ secrets.HCP_CLIENT_SECRET }}
-    BOX_VERSION: ${{ github.event.inputs.box-version }}
-    VAGRANT_ORG: danilapog
-    PRODUCT: docspace
-
 jobs:
   prepare:
     runs-on: ubuntu-latest
+    env:
+      HCP_CLIENT_ID: ${{ secrets.HCP_CLIENT_ID }}
+      HCP_CLIENT_SECRET: ${{ secrets.HCP_CLIENT_SECRET }}
+      BOX_VERSION: ${{ github.event.inputs.box-version }}
+      VAGRANT_ORG: danilapog
+      PRODUCT: docspace
+      OS_NAME: ${{ matrix.name }}
+      OS: ${{ matrix.os }}
+      DISTR: ${{ matrix.distr }}
     outputs:
       matrix: ${{ steps.set-matrix.outputs.matrix }}
     steps:
@@ -103,20 +105,20 @@ jobs:
                   set -eux   
                   cd tests/vagrant
                     TEST_CASE='--production-install' \
-                    DISTR='${{ matrix.distr }}' \
-                    OS='${{ matrix.os }}' \
+                    DISTR=${DISTR} \
+                    OS=${OS} \
                     DOWNLOAD_SCRIPT='-ds true' \
                     RAM='8192' \
                     CPU='3' \
                     ARGUMENTS="-arg '--skiphardwarecheck true --makeswap false'" \
                     vagrant up
                   sleep 300
-                  vagrant package --output ${PRODUCT}-${{ matrix.name }}.box
+                  vagrant package --output ${PRODUCT}-${OS_NAME}.box
                   bash ./tests/vagrant/publish.sh
           on_retry_command: |
                 set -eux
 
                 echo "RUN CLEAN UP: Remove repacked box and destroy"
                 cd tests/vagrant
-                rm -rf ${PRODUCT}-${{ matrix.name }}.box
+                rm -rf ${PRODUCT}-${OS_NAME}.box
                 vagrant destroy --force
