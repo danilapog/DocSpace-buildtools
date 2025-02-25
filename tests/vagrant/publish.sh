@@ -3,12 +3,14 @@
 hcp auth login --client-id=$HCP_CLIENT_ID --client-secret=$HCP_CLIENT_SECRET
 _VAGRANT_CLOUD_TOKEN="$(hcp auth print-access-token)"
 
+_OS_NAME=${{ matrix.name }}
 _ORG=${VAGRANT_ORG}
-_BOX="${PRODUCT}-${{ matrix.name }}"
+_BOX="${PRODUCT}-${_OS_NAME}"
 _VERSION=${BOX_VERSION}
 _PROVIDER=virtualbox
 _ARCHITECTURE=amd64
-_CHECKSUM="$(sha256sum emptybox.box | awk '{ print $1 }')"
+_CHECKSUM="$(sha256sum ${_BOX}.box | awk '{ print $1 }')"
+
 curl -skL \
   --request POST \
   --header "Content-Type: application/json" \
@@ -44,7 +46,7 @@ _UPLOAD_PATH=$(curl -skL \
 curl -skL \
   --request PUT \
   --header "Connection: keep-alive" \
-  --upload-file emptybox.box \
+  --upload-file ${_BOX}.box \
   $_UPLOAD_PATH | jq .
 
 curl -skL \
