@@ -4,7 +4,7 @@ hcp auth login --client-id=$HCP_CLIENT_ID --client-secret=$HCP_CLIENT_SECRET
 _VAGRANT_CLOUD_TOKEN="$(hcp auth print-access-token)"
 
 _ORG=${VAGRANT_ORG}
-_BOX="docspace-${{ matrix.name }}"
+_BOX="${PRODUCT}-${{ matrix.name }}"
 _VERSION=${BOX_VERSION}
 _PROVIDER=virtualbox
 _ARCHITECTURE=amd64
