@@ -82,22 +82,6 @@ jobs:
             ]
           }')            
         
-          matrix=$(echo "$matrix" | jq -c --argjson debuild "${{ github.event.inputs.deb_build || true }}" --argjson rpmbuild "${{ github.event.inputs.rpm_build || true }}" '
-            { include: [ .include[] | select(
-                  ($debuild and (.name | test("Debian|Ubuntu"))) or
-                  ($rpmbuild and (.name | test("CentOS|Fedora")))
-                )
-            ] }')
-        
-          if [ "$GITHUB_EVENT_NAME" = "pull_request" ]; then
-            matrix=$(echo "$matrix" | jq -c --arg REDHAT_CHANGED "${{ env.redhat_changed }}" --arg DEBIAN_CHANGED "${{ env.debian_changed }}" '
-              { include: [ .include[] | select(
-                    ($REDHAT_CHANGED == $DEBIAN_CHANGED and .execute == true) or
-                    ($REDHAT_CHANGED == "true" and (.name | test("CentOS|Fedora"))) or
-                    ($DEBIAN_CHANGED == "true" and (.name | test("Debian|Ubuntu")))
-                  )
-              ] }')
-          fi
         
           echo "matrix=$matrix" >> $GITHUB_OUTPUT
 
