@@ -38,15 +38,6 @@ on:
 jobs:
   prepare:
     runs-on: ubuntu-latest
-    env:
-      HCP_CLIENT_ID: ${{ secrets.HCP_CLIENT_ID }}
-      HCP_CLIENT_SECRET: ${{ secrets.HCP_CLIENT_SECRET }}
-      BOX_VERSION: ${{ github.event.inputs.box-version }}
-      VAGRANT_ORG: danilapog
-      PRODUCT: docspace
-      OS_NAME: ${{ matrix.name }}
-      OS: ${{ matrix.os }}
-      DISTR: ${{ matrix.distr }}
     outputs:
       matrix: ${{ steps.set-matrix.outputs.matrix }}
     steps:
@@ -58,10 +49,10 @@ jobs:
             "include": [
               {"execute": '${{ github.event.inputs.centos9s || true }}', "name": "centos9s", "os": "base-centos9s", "distr": "onlyoffice"},
               {"execute": '${{ github.event.inputs.debian12 || true }}', "name": "debian12", "os": "base-debian12", "distr": "onlyoffice"},
-              {"execute": '${{ github.event.inputs.ubuntu2204 || true }}', "name": "Ubuntu2204", "os": "base-ubuntu2204", "distr": "onlyoffice"},
-              {"execute": '${{ github.event.inputs.ubuntu2404 || true }}', "name": "Ubuntu2404", "os": "base-ubuntu2404", "distr": "onlyoffice"},
-              {"execute": '${{ github.event.inputs.fedora40 || true }}', "name": "Fedora40", "os": "base-fedora40", "distr": "onlyoffice"},
-              {"execute": '${{ github.event.inputs.fedora41 || true }}', "name": "Fedora41", "os": "base-fedora41", "distr": "onlyoffice"}
+              {"execute": '${{ github.event.inputs.ubuntu2204 || true }}', "name": "ubuntu2204", "os": "base-ubuntu2204", "distr": "onlyoffice"},
+              {"execute": '${{ github.event.inputs.ubuntu2404 || true }}', "name": "ubuntu2404", "os": "base-ubuntu2404", "distr": "onlyoffice"},
+              {"execute": '${{ github.event.inputs.fedora40 || true }}', "name": "fedora40", "os": "base-fedora40", "distr": "onlyoffice"},
+              {"execute": '${{ github.event.inputs.fedora41 || true }}', "name": "fedora41", "os": "base-fedora41", "distr": "onlyoffice"}
             ]
           }' | jq -c '{include: [.include[] | select(.execute == true)]}')
           echo "matrix=${matrix}" >> $GITHUB_OUTPUT
@@ -69,6 +60,15 @@ jobs:
   rebuild-boxes:
     name: "Rebuild ${{ matrix.name}} ${{ github.event.inputs.box-version }}"
     runs-on: ubuntu-latest
+    env:
+      HCP_CLIENT_ID: ${{ secrets.HCP_CLIENT_ID }}
+      HCP_CLIENT_SECRET: ${{ secrets.HCP_CLIENT_SECRET }}
+      BOX_VERSION: ${{ github.event.inputs.box-version }}
+      VAGRANT_ORG: danilapog
+      PRODUCT: docspace
+      OS_NAME: ${{ matrix.name }}
+      OS: ${{ matrix.os }}
+      DISTR: ${{ matrix.distr }}
     needs: prepare
     strategy:
       fail-fast: false
