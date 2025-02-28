@@ -77,8 +77,8 @@ jobs:
               {"execute": '${{ github.event.inputs.debian12 || true }}', "name": "Debian12", "os": "base-debian12", "distr": "onlyoffice"},
               {"execute": '${{ github.event.inputs.ubuntu2204 || true }}', "name": "Ubuntu22.04", "os": "base-ubuntu2204", "distr": "onlyoffice"},
               {"execute": '${{ github.event.inputs.ubuntu2404 || true }}', "name": "Ubuntu24.04", "os": "base-ubuntu2404", "distr": "onlyoffice"},
-              {"execute": '${{ github.event.inputs.fedora40 || true }}', "name": "Fedora40", "os": "fedora-40", "distr": "bento"},
-              {"execute": '${{ github.event.inputs.fedora41 || true }}', "name": "Fedora41", "os": "fedora-41", "distr": "bento"}
+              {"execute": '${{ github.event.inputs.fedora40 || true }}', "name": "Fedora40", "os": "base-fedora40", "distr": "unclebob"},
+              {"execute": '${{ github.event.inputs.fedora41 || true }}', "name": "Fedora41", "os": "base-fedora41", "distr": "unclebob"}
             ]
           }' | jq -c '{include: [.include[] | select(.execute == true)]}')            
         
