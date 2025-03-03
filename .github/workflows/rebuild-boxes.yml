@@ -115,7 +115,8 @@ jobs:
                     vagrant up
                   sleep 300
                   vagrant package --output ${PRODUCT}-${OS_NAME}.box
-                  bash ./tests/vagrant/publish.sh
+                  wget https://raw.githubusercontent.com/ONLYOFFICE/ga-common/refs/heads/master/.github/scripts/vagrant_publish.sh
+                  bash ./vagrant_publish.sh
           on_retry_command: |
                 set -eux
 
