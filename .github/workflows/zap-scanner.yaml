@@ -56,12 +56,12 @@ jobs:
                         grep -Eo -m1 "${version}.[0-9]{1,999}" || true)
                if [[ ! -z "${image_version}" ]]; then
                   echo "Image with version ${version} exist, include new matrix"
-                  matrix=$(echo $matrix | jq '.include += [
+                  matrix=$(echo $matrix | jq ".include += [
                       {
-                              "branch": \"${branch}\", 
-                              "version": \"${version}\"
+                              \"branch\": \"${branch}\", 
+                              \"version\": \"${version}\"
                       }
-                   ]')
+                   ]")
                fi
             done
 
