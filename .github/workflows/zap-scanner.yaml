@@ -65,7 +65,7 @@ jobs:
                fi
             done
 
-            echo "matrix=$(echo $matrix | jq -c .)" >> "$GITHUB_OUTPUT"
+            printf "matrix=%s\n" "$(echo "$matrix" | jq -c .)" >> "$GITHUB_OUTPUT"
             echo "${matrix}" | jq -c
             echo "${matrix}" | jq -c .
                
