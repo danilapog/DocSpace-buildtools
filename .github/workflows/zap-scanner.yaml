@@ -53,14 +53,16 @@ jobs:
                version=${branch#*v}
                image_version=$(curl -s -H -X https://hub.docker.com/v2/repositories/onlyoffice/4testing-docspace-api/tags/?page_size=100  | \
                         jq -r '.results|.[]|.name' | \
-                        grep -Eo -m1 "${version}.[0-9]{1,999}")
-                        
-               matrix=$(echo $matrix | jq ".include += [
-                 {
-                   \"version\": \"${image_version}\",
-                   \"branch\": \"${branch}\"
-                 }
-               ]")
+                        grep -Eo -m1 "${version}.[0-9]{1,999}" || true)
+               if [[ ! -z "${image_version}" ]]; then
+                  echo "Image with version ${version} exist, include new matrix"
+                  matrix=$(echo $matrix | jq ".include += [
+                    {
+                      \"version\": \"${image_version}\",
+                      \"branch\": \"${branch}\"
+                    }
+                  ]")
+               fi
             done
 
             echo "matrix=$(echo $matrix | jq -c)" >> "$GITHUB_OUTPUT"
