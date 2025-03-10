@@ -24,7 +24,7 @@ jobs:
   prepare:
     runs-on: ubuntu-latest
     outputs: 
-      matrix: ${{ steps.get-matrix.outputs.matirx }}
+      matrix: ${{ steps.get-matrix.outputs.matrix }}
       branches-status: ${{ steps.get-matrix.outputs.branches-status }}
     name: Get DocSpace branches/versions
     steps:
@@ -58,16 +58,14 @@ jobs:
                   echo "Image with version ${version} exist, include new matrix"
                   matrix=$(echo $matrix | jq '.include += [
                       {
-                              "branch": "hotfix", 
-                              "version": "1.0.0"
+                              "branch": "'"${branch}"'", 
+                              "version": "'"${version}"'"
                       }
                    ]')
                fi
             done
 
             echo "matrix=$(echo $matrix | jq -c)" >> "$GITHUB_OUTPUT"
-            echo "${matrix}" | jq -c
-            echo "${matrix}" | jq -c .
                
   zap:
     runs-on: ubuntu-latest
