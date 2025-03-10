@@ -73,6 +73,8 @@ jobs:
                echo "${tags[@]:0:500}"
             }
 
+            ALL_TAGS=$(fetch_tags_limit)
+            
             for branch in ${DOCSPACE_BRANCHES[@]}; do
                version=${branch#*v}
                image_version=$(echo "$ALL_TAGS" | grep -Eo "${version}.[0-9]{1,999}" | head -n1 || true)
@@ -100,7 +102,7 @@ jobs:
       PROTO: https
     permissions:
       issues: write
-    name: Scan DocSpace with zap
+    name: "Zap DocSpace: ${{ matrix.branch }}/${{ matrix.version }}"
     steps:
       - name: Checkout
         uses: actions/checkout@v3
