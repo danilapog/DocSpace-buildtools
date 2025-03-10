@@ -55,12 +55,12 @@ jobs:
                         jq -r '.results|.[]|.name' | \
                         grep -Eo -m1 "${version}.[0-9]{1,999}")
                         
-               matrix=$(echo $matrix | jq '.include += [
+               matrix=$(echo $matrix | jq ".include += [
                  {
-                   "version": "${image_version}",
-                   "branch": "${branch}"
+                   \"version\": \"${image_version}\",
+                   \"branch\": \"${branch}\"
                  }
-               ]')
+               ]")
             done
 
             echo "matrix=$(echo $matrix | jq -c)" >> "$GITHUB_OUTPUT"
