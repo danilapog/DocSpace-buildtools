@@ -2,32 +2,32 @@
 name: Scanning DocSpace with ZAP
 
 run-name: > 
-     ZAP scanning DocSpace ver: ${{ github.event.inputs.version }} from branch: ${{ github.event.inputs.branch }}
+     ZAP scanning DocSpace hotfix/release
 
 on:
   schedule:
     - cron: '00 21 * * 6'
     
-  workflow_dispatch:
-    inputs:
-      branch:
-        description: 'Set branch for which OCI script will be used for deploy'
-        type: string
-        required: true
-      version:
-        description: 'Set DocSpace version that will be deployed'
-        type: string
-        required: true
+  #workflow_dispatch:
+  #  inputs:
+  #    branch:
+  #      description: 'Set branch for which OCI script will be used for deploy'
+  #      type: string
+  #      required: true
+  #    version:
+  #      description: 'Set DocSpace version that will be deployed'
+  #      type: string
+  #      required: true
         
 jobs:
   prepare:
     runs-on: ubuntu-latest
     outputs: 
-      image-versions: ${{ steps.selective-checks.outputs.image-versions }}
+      matrix: ${{ steps.get-matrix.outputs.matirx }}
     name: Get DocSpace branches/versions
     steps:
       - name: Checkout
-        id: selective-checks
+        id: get-matrix
         shell: bash
         run: |
             DOCSPACE_BRANCHES=($(curl -s -L \
@@ -39,22 +39,29 @@ jobs:
             # Exit if there is not notfix/release
             [[ -z "${DOCSPACE_BRANCHES}" ]] && { echo "Can't find any hotfix/release branches"; exit 0; }
 
-            VERSIONS=()
+            matrix='{"include": []}'
+
             for branch in ${DOCSPACE_BRANCHES[@]}; do
                version=${branch#*v}
-               VERSIONS+=($(curl -s -H -X https://hub.docker.com/v2/repositories/onlyoffice/4testing-docspace-api/tags/?page_size=100  | \
+               image_version=$(curl -s -H -X https://hub.docker.com/v2/repositories/onlyoffice/4testing-docspace-api/tags/?page_size=100  | \
                         jq -r '.results|.[]|.name' | \
-                        grep -Eo -m1 "${version}.[0-9]{1,999}"))
+                        grep -Eo -m1 "${version}.[0-9]{1,999}")
+                        
+               matrix=$(echo $matrix | jq '.include += [
+                 {
+                   "version": "${image_version}",
+                   "branch": "${branch}"
+                 }
+               ]')
             done
 
-            echo "image-versions=$(jq -c -n '$ARGS.positional' --args "${VERSIONS[@]}")" >> "$GITHUB_OUTPUT"
+            echo "matrix=$(echo $matrix | jq -c)" >> "$GITHUB_OUTPUT"
                
   zap:
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
-      matrix:
-        version: ${{fromJSON(needs.prepare.outputs.image-versions)}}
+      matrix: ${{fromJSON(needs.prepare.outputs.matrix)}}
     needs: ['prepare']
     env:
       PROTO: https
@@ -67,7 +74,7 @@ jobs:
         with:
           path: build-tools
           repository: ONLYOFFICE/DocSpace-buildtools
-          ref: ${{ github.event.inputs.branch }}
+          ref: ${{ matrix.branch }}
           
       - name: Run and prepare DocSpace
         id: prepare
