@@ -58,14 +58,15 @@ jobs:
                   echo "Image with version ${version} exist, include new matrix"
                   matrix=$(echo $matrix | jq '.include += [
                       {
-                              "branch": "hotfix/v3.0.4", 
-                              "version": "3213123123"
+                              "branch": "${branch}", 
+                              "version": "${version}"
                       }
                    ]')
                fi
             done
 
             echo "matrix=$(echo $matrix | jq -c)" >> "$GITHUB_OUTPUT"
+            echo "matrix: ${matrix}"
                
   zap:
     runs-on: ubuntu-latest
