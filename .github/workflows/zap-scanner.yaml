@@ -43,9 +43,14 @@ jobs:
 
             matrix='{"include": []}'
 
+            DOCSPACE_BRANCHES=(
+                      "hotfix/v3.0.4"
+                      "release/v3.0.0"
+                      "hotfix/v3.0.1"
+                      )
+                      
             for branch in ${DOCSPACE_BRANCHES[@]}; do
                version=${branch#*v}
-               echo "version=${version}"
                image_version=$(curl -s -H -X https://hub.docker.com/v2/repositories/onlyoffice/4testing-docspace-api/tags/?page_size=100  | \
                         jq -r '.results|.[]|.name' | \
                         grep -Eo -m1 "${version}.[0-9]{1,999}")
