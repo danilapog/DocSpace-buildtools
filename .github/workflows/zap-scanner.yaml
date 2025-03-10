@@ -35,7 +35,7 @@ jobs:
             DOCSPACE_BRANCHES=($(curl -s -L \
               -H "Accept: application/vnd.github+json" \
               -H "X-GitHub-Api-Version: 2022-11-28" \
-              https://api.github.com/repos/ONLYOFFICE/build_tools/branches | \
+              https://api.github.com/repos/ONLYOFFICE/DocSpace/branches | \
               jq -r '.[] | select(.name != "hotfix/v1.0.0" and (.name | startswith("hotfix/") or startswith("release/"))) | .name'))
 
             # Exit if there is not notfix/release
@@ -69,7 +69,7 @@ jobs:
                
   zap:
     runs-on: ubuntu-latest
-    if: needs.prepare.outputs.branches_status == 'not-exist'
+    if: needs.prepare.outputs.branches_status != 'not-exist'
     strategy:
       fail-fast: false
       matrix: ${{fromJSON(needs.prepare.outputs.matrix)}}
