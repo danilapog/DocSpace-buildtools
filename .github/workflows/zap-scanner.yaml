@@ -69,7 +69,7 @@ jobs:
                
   zap:
     runs-on: ubuntu-latest
-    if: needs.prepare.outputs.branches_status == 'exist'
+    if: needs.prepare.outputs.branches_status != 'not-exist'
     strategy:
       fail-fast: false
       matrix: ${{fromJSON(needs.prepare.outputs.matrix)}}
