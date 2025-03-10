@@ -65,8 +65,9 @@ jobs:
                fi
             done
 
-            echo "matrix=$(echo $matrix | jq -c .)" >> "$GITHUB_OUTPUT"
-            echo "matrix: ${matrix}"
+            echo "matrix=$(echo $matrix | jq -c)" >> "$GITHUB_OUTPUT"
+            echo "${matrix}" | jq -c
+            echo "${matrix}" | jq -c .
                
   zap:
     runs-on: ubuntu-latest
