@@ -56,7 +56,6 @@ jobs:
                         grep -Eo -m1 "${version}.[0-9]{1,999}" || true)
                if [[ ! -z "${image_version}" ]]; then
                   echo "Image with version ${version} exist, include new matrix"
-                  #echo "branches-status=exist" >> "$GITHUB_OUTPUT"
                   matrix=$(echo $matrix | jq '.include += [
                       {
                               "branch": "hotfix/v3.0.4", 
@@ -67,9 +66,6 @@ jobs:
             done
 
             echo "matrix=$(echo $matrix | jq -c)" >> "$GITHUB_OUTPUT"
-
-            echo "MATRIX IS:"
-            echo "${matrix}"
                
   zap:
     runs-on: ubuntu-latest
