@@ -48,7 +48,31 @@ jobs:
                       "release/v3.0.0"
                       "hotfix/v3.0.1"
                       )
-                      
+
+            fetch_tags_limit() {
+               local url="https://hub.docker.com/v2/repositories/onlyoffice/4testing-docspace-api/tags/?page_size=100"
+               local tags=()
+    
+               while [[ -n "$url" && "$url" != "null" && ${#tags[@]} -lt 500 ]]; do
+               response=$(curl -s "$url")
+        
+               # Extract tag names and append to the array
+               new_tags=($(echo "$response" | jq -r '.results[].name'))
+               tags+=("${new_tags[@]}")
+
+               # Stop if we reached 500 tags
+               if [[ ${#tags[@]} -ge 500 ]]; then
+                   break
+               fi
+        
+               # Get the next page URL
+               url=$(echo "$response" | jq -r '.next')
+               done
+
+               # Limit to exactly 500 tags (in case we fetched more)
+               echo "${tags[@]:0:500}"
+            }
+
             for branch in ${DOCSPACE_BRANCHES[@]}; do
                version=${branch#*v}
                image_version=$(curl -s -H -X https://hub.docker.com/v2/repositories/onlyoffice/4testing-docspace-api/tags/?page_size=100  | \
