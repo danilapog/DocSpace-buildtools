@@ -20,8 +20,24 @@ on:
         required: true
         
 jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    name: Get DocSpace branches/versions
+    steps:
+      - name: Checkout
+        run: |
+            DOCSPACE_BRANCHES=($(curl -s -L \
+              -H "Accept: application/vnd.github+json" \
+              -H "Authorization: Bearer ${TOKEN_PUBLICK_REPO}" \
+              -H "X-GitHub-Api-Version: 2022-11-28" \
+              https://api.github.com/repos/ONLYOFFICE/DocSpace/branches | \
+              jq -r '.[] | select(.name != "hotfix/v1.0.0" and (.name | startswith("hotfix/") or startswith("release/"))) | .name'))
+
+          
+          
   zap:
     runs-on: ubuntu-latest
+    needs: ['prepare']
     env:
       PROTO: https
     permissions:
