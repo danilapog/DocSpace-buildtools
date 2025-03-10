@@ -5,6 +5,7 @@ run-name: >
      ZAP scanning DocSpace hotfix/release
 
 on:
+  push:
   schedule:
     - cron: '00 21 * * 6'
     
@@ -33,7 +34,7 @@ jobs:
             DOCSPACE_BRANCHES=($(curl -s -L \
               -H "Accept: application/vnd.github+json" \
               -H "X-GitHub-Api-Version: 2022-11-28" \
-              https://api.github.com/repos/ONLYOFFICE/DocSpace/branches | \
+              https://api.github.com/repos/danilapog/DocSpace-buildtools/branches | \
               jq -r '.[] | select(.name != "hotfix/v1.0.0" and (.name | startswith("hotfix/") or startswith("release/"))) | .name'))
 
             # Exit if there is not notfix/release
