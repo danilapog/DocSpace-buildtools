@@ -35,19 +35,13 @@ jobs:
             DOCSPACE_BRANCHES=($(curl -s -L \
               -H "Accept: application/vnd.github+json" \
               -H "X-GitHub-Api-Version: 2022-11-28" \
-              https://api.github.com/repos/ONLYOFFICE/build_tools/branches | \
+              https://api.github.com/repos/ONLYOFFICE/DocSpace-buildtools/branches | \
               jq -r '.[] | select(.name != "hotfix/v1.0.0" and (.name | startswith("hotfix/") or startswith("release/"))) | .name'))
 
             # Exit if there is not notfix/release
             [[ -z "${DOCSPACE_BRANCHES}" ]] && { echo "Can't find any hotfix/release branches"; echo "branches-status=not-exist" >> "$GITHUB_OUTPUT" ; exit 0; }
 
             matrix='{"include": []}'
-
-            DOCSPACE_BRANCHES=(
-                      "hotfix/v3.0.4"
-                      "release/v3.0.0"
-                      "hotfix/v3.0.1"
-                      )
 
             fetch_tags_limit() {
                local url="https://hub.docker.com/v2/repositories/onlyoffice/4testing-docspace-api/tags/?page_size=100"
