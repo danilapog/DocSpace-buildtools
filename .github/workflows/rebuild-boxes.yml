@@ -95,8 +95,7 @@ jobs:
                     vagrant up --provider=virtualbox
                   sleep 300
                   vagrant package --output ${PRODUCT}-${OS_NAME}.box
-                  wget https://raw.githubusercontent.com/ONLYOFFICE/ga-common/refs/heads/master/.github/scripts/vagrant_publish.sh
-                  bash ./vagrant_publish.sh
+                  df -h 
           on_retry_command: |
                 set -eux
 
