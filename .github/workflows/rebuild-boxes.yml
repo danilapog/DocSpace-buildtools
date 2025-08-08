@@ -15,8 +15,6 @@ jobs:
     name: "Rebuild ${{ matrix.name}} ${{ github.event.inputs.box-version }}"
     runs-on: ubuntu-22.04
     env:
-      HCP_CLIENT_ID: ${{ secrets.HCP_CLIENT_ID }}
-      HCP_CLIENT_SECRET: ${{ secrets.HCP_CLIENT_SECRET }}
       BOX_VERSION: ${{ github.event.inputs.box-version }}
       VAGRANT_ORG: onlyoffice
       PRODUCT: docspace
