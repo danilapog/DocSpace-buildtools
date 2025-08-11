@@ -84,6 +84,7 @@ jobs:
           command: |
                   set -eux   
                   cd tests/vagrant
+                  export date=$(date +%F)
                     TEST_CASE='--local-install' \
                     DISTR='${{ matrix.distr }}' \
                     OS='${{matrix.os}}' \
