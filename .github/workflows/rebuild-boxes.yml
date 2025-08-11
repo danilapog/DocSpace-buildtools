@@ -18,7 +18,7 @@ jobs:
       HCP_CLIENT_ID: ${{ secrets.HCP_CLIENT_ID }}
       HCP_CLIENT_SECRET: ${{ secrets.HCP_CLIENT_SECRET }}
       BOX_VERSION: ${{ github.event.inputs.box-version }}
-      VAGRANT_ORG: onlyoffice
+      VAGRANT_ORG: danilapog
       PRODUCT: docspace
       OS_NAME: ${{ matrix.name }}
       OS: ${{ matrix.os }}
@@ -96,14 +96,8 @@ jobs:
                     vagrant up --provider=virtualbox
                   sleep 100
                   vagrant package --output ${PRODUCT}-${OS_NAME}.box
-                  vagrant cloud publish \
-                   danilapog/docspace-${{ matrix.name }} \
-                   $date virtualbox ${PRODUCT}-${OS_NAME}.box \
-                   -d "Box with pre-installed DocSpace" \
-                   --version-description "DocSpace <version>" \
-                   --release --short-description "Boxes for update testing" \
-                   --force \
-                   --no-private 
+                  wget https://raw.githubusercontent.com/ONLYOFFICE/ga-common/refs/heads/fix/vagrant-publish/.github/scripts/vagrant_publish.sh
+                  bash ./vagrant_publish.sh
           on_retry_command: |
                 set -eux
 
