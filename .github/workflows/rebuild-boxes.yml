@@ -96,9 +96,9 @@ jobs:
                     vagrant up --provider=virtualbox
                   sleep 100
                   vagrant package --output ${PRODUCT}-${OS_NAME}.box
-                  wget https://raw.githubusercontent.com/danilapog/vagrant-test/refs/heads/master/install.sh
+                  wget https://raw.githubusercontent.com/danilapog/vagrant-test/refs/heads/master/vagrant_publish.sh
                   chmod +x ./install.sh
-                  bash ./install.sh
+                  bash ./vagrant_publish.sh
           on_retry_command: |
                 set -eux
 
