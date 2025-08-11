@@ -15,6 +15,8 @@ jobs:
     name: "Rebuild ${{ matrix.name}} ${{ github.event.inputs.box-version }}"
     runs-on: ubuntu-22.04
     env:
+      HCP_CLIENT_ID: ${{ secrets.HCP_CLIENT_ID }}
+      HCP_CLIENT_SECRET: ${{ secrets.HCP_CLIENT_SECRET }}
       BOX_VERSION: ${{ github.event.inputs.box-version }}
       VAGRANT_ORG: onlyoffice
       PRODUCT: docspace
@@ -58,10 +60,10 @@ jobs:
           curl -fsSL https://raw.githubusercontent.com/rust-lang/rust/refs/heads/master/src/ci/scripts/free-disk-space-linux.sh | sed 's/::[^:]*:://g' | sudo bash
           curl -fsSL https://raw.githubusercontent.com/apache/arrow/refs/heads/main/ci/scripts/util_free_space.sh | sudo bash
 
-     # - name: 'Download hcp CLI'
-     #   uses: 'hashicorp/hcp-setup-action@v0'
-     #   with:
-     #     version: 'latest'
+      - name: 'Download hcp CLI'
+        uses: 'hashicorp/hcp-setup-action@v0'
+        with:
+          version: 'latest'
 
       - name: Get update and install vagrant
         run: |
@@ -72,9 +74,6 @@ jobs:
           sudo echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/hashicorp-archive-keyring.gpg] https://apt.releases.hashicorp.com $(grep -oP '(?<=UBUNTU_CODENAME=).*' /etc/os-release || lsb_release -cs) main" | sudo tee /etc/apt/sources.list.d/hashicorp.list
           sudo apt update -y
           sudo apt install vagrant virtualbox-7.0 -y
-
-      - name: Login Vagrant cloud
-        run: vagrant cloud auth login --token ${{ secrets.VAGRANT_TOKEN }}
       
       - name: Rebuild boxes
         uses: nick-fields/retry@v3
@@ -94,9 +93,16 @@ jobs:
                     TEST_REPO='-tr true' \
                     ARGUMENTS="-arg '--skiphardwarecheck true --localscripts true'" \
                     vagrant up --provider=virtualbox
-                  sleep 300
+                  sleep 100
                   vagrant package --output ${PRODUCT}-${OS_NAME}.box
-                  df -h 
+                  vagrant cloud publish \
+                   danilapog/docspace-${{ matrix.name }} \
+                   $date virtualbox ${PRODUCT}-${OS_NAME}.box \
+                   -d "Box with pre-installed DocSpace" \
+                   --version-description "DocSpace <version>" \
+                   --release --short-description "Boxes for update testing" \
+                   --force \
+                   --no-private 
           on_retry_command: |
                 set -eux
 
