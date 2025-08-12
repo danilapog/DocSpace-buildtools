@@ -27,8 +27,8 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - distr: roboxes
-            os: rhel9
+          - distr: base-rhel9
+            os: danilapog
             name: "rhel9"
 
 
