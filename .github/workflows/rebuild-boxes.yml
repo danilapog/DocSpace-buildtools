@@ -67,7 +67,7 @@ jobs:
       - name: Rebuild boxes
         uses: nick-fields/retry@v3
         with:
-          max_attempts: 2
+          max_attempts: 1
           timeout_minutes: 90
           retry_on: error
           command: |
@@ -83,8 +83,7 @@ jobs:
                     TEST_REPO='-tr true' \
                     ARGUMENTS="-arg '--skiphardwarecheck true --localscripts true'" \
                     vagrant up --provider=virtualbox
-                  sleep 100
-                  vagrant halt
+                  sleep 20
                   vagrant package --output ${OS_NAME}.box
                   vagrant cloud publish \
                      ${VAGRANT_ORG}/${PRODUCT}-${OS_NAME} \
