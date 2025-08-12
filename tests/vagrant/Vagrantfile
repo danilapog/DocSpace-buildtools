@@ -1,6 +1,6 @@
 Vagrant.configure("2") do |config|
     config.vm.box = "#{ENV['DISTR']}/#{ENV['OS']}"
-
+    config.ssh.insert_key = false
     config.vm.provider "virtualbox" do |v|
              v.customize ["modifyvm", :id, "--memory", "#{ENV['RAM']}"] #<= total RAM.
              v.customize ["modifyvm", :id, "--cpus", "#{ENV['CPU']}"] #<= total CPU.
