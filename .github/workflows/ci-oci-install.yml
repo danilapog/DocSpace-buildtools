@@ -65,7 +65,7 @@ jobs:
               {"execute": '${{ github.event.inputs.ubuntu2404 || true }}', "name": "Ubuntu24.04", "os": "base-ubuntu2404", "distr": "onlyoffice"},
               {"execute": '${{ github.event.inputs.fedora41 || true }}', "name": "Fedora41", "os": "base-fedora41", "distr": "onlyoffice"},
               {"execute": '${{ github.event.inputs.fedora42 || true }}', "name": "Fedora42", "os": "base-fedora42", "distr": "onlyoffice"},
-              {"execute": '${{ github.event.inputs.centos10 || true }}', "name": "centos10", "os": "centos-stream-10", "distr": "bento"}
+              {"execute": '${{ github.event.inputs.centos10 || true }}', "name": "centos10", "os": "docspace-centos10", "distr": "danilapog"}
             ]
           }')            
 
