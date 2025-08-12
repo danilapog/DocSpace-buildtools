@@ -28,7 +28,7 @@ jobs:
       matrix:
         include:
           - distr: onlyoffice
-            os: rhel9
+            os: base-rhel9
             name: "rhel9"
 
 
