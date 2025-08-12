@@ -27,9 +27,9 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - distr: bento
-            os: centos-stream-10
-            name: "centos10"
+          - distr: onlyoffice
+            os: rhel9
+            name: "rhel9"
 
 
     steps:
