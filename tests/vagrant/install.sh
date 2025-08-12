@@ -2,6 +2,8 @@
 
 set -e
 
+df -h 
+
 while [ "$1" != "" ]; do
     case $1 in
       -ds | --download-scripts )
