@@ -84,7 +84,7 @@ jobs:
                     ARGUMENTS="-arg '--skiphardwarecheck true --localscripts true'" \
                     vagrant up --provider=virtualbox
                   sleep 100
-                  vagrant halt --force
+                  vagrant halt
                   vagrant package --output ${OS_NAME}.box
                   vagrant cloud publish \
                      ${VAGRANT_ORG}/${PRODUCT}-${OS_NAME} \
