@@ -27,9 +27,9 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - distr: danilapog
-            os: base-debian13
-            name: "debian13"
+          - distr: roboxes
+            os: rhel9
+            name: "rhel9"
 
 
     steps:
