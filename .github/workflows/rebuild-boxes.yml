@@ -85,8 +85,14 @@ jobs:
                     vagrant up --provider=virtualbox
                   sleep 20
                   vagrant package --output ${OS_NAME}.box
-                  wget https://raw.githubusercontent.com/danilapog/vagrant-test/refs/heads/master/vagrant_publish.sh
-                  bash ./vagrant_publish.sh
+                  vagrant cloud publish \
+                     ${VAGRANT_ORG}/${PRODUCT}-${OS_NAME} \
+                     ${BOX_VERSION} virtualbox ${OS_NAME}.box \
+                     -d "Box with pre-installed ${PRODUCT}" \
+                     --version-description "${PRODUCT}:${BOX_VERSION}" \
+                     --release --short-description "Boxes for update testing" \
+                     --force \
+                     --no-private
           on_retry_command: |
                 set -eux
 
