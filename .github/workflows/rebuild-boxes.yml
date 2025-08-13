@@ -100,7 +100,16 @@ jobs:
                     ARGUMENTS="-arg '--skiphardwarecheck true --localscripts true'" \
                     vagrant up --provider=virtualbox
                   vagrant ssh -c "sudo shutdown now" > /dev/null 2>&1 || true
-                  sleep 100
+                  for i in {1..10}; do
+                         VM_STATE=$(VBoxManage showvminfo $(basename "$PWD") --machinereadable | grep -i '^VMState=' | cut -d'"' -f2)
+                         if [[ "$VM_STATE" == "poweroff" ]]; then
+                              echo "VM powered off."
+                              break
+                         else
+                              echo "Waiting for VM to shut down... (current state: $VM_STATE)"
+                              sleep 60
+                         fi
+                  done
                   vagrant package --output ${OS_NAME}.box
                   vagrant cloud publish \
                      ${VAGRANT_ORG}/${PRODUCT}-${OS_NAME} \
