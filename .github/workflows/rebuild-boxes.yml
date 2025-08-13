@@ -27,7 +27,7 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - distr: danilapog
+          - distr: onlyoffice
             os: base-rhel9
             name: "rhel9"
 
