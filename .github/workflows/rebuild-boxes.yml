@@ -99,7 +99,7 @@ jobs:
                     TEST_REPO='-tr true' \
                     ARGUMENTS="-arg '--skiphardwarecheck true --localscripts true'" \
                     vagrant up --provider=virtualbox
-                  vagrant ssh -c "sudo shutdown now" > /dev/null 2>&1 || true
+                  vagrant halt
                   for i in {1..10}; do
                          VM_STATE=$(VBoxManage showvminfo $(basename "$PWD") --machinereadable | grep -i '^VMState=' | cut -d'"' -f2)
                          if [[ "$VM_STATE" == "poweroff" ]]; then
