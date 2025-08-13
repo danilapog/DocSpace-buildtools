@@ -27,15 +27,31 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - distr: onlyoffice
-            os: base-debian11
-            name: "debian11"
+          - distr: danilapog
+            os: base-rhel9
+            name: "rhel9"
 
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Free Disk Space (Ubuntu)
+        uses: jlumbroso/free-disk-space@main
+        with:
+          # this might remove tools that are actually needed,
+          # if set to "true" but frees about 6 GB
+          tool-cache: false
+        
+          # all of these default to true, but feel free to set to
+          # "false" if necessary for your workflow
+          android: true
+          dotnet: true
+          haskell: true
+          large-packages: true
+          docker-images: true
+          swap-storage: true
+        
       - name: 'Download hcp CLI'
         uses: 'hashicorp/hcp-setup-action@v0'
         with:
@@ -84,6 +100,7 @@ jobs:
                     ARGUMENTS="-arg '--skiphardwarecheck true --localscripts true'" \
                     vagrant up --provider=virtualbox
                   sleep 20
+                  vagrant halt
                   vagrant package --output ${OS_NAME}.box
                   vagrant cloud publish \
                      ${VAGRANT_ORG}/${PRODUCT}-${OS_NAME} \
