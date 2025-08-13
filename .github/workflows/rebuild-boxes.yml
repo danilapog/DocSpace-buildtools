@@ -99,8 +99,8 @@ jobs:
                     TEST_REPO='-tr true' \
                     ARGUMENTS="-arg '--skiphardwarecheck true --localscripts true'" \
                     vagrant up --provider=virtualbox
-                  sleep 20
-                  vagrant halt
+                  vagrant ssh -c "sudo shutdown -h now"
+                  sleep 300
                   vagrant package --output ${OS_NAME}.box
                   vagrant cloud publish \
                      ${VAGRANT_ORG}/${PRODUCT}-${OS_NAME} \
