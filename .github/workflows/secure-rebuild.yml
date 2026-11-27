@@ -1,0 +1,336 @@
+name: DocSpace Secure Rebuild
+
+# Rebuilds every release recorded in .github/secure-rebuild.json from scratch: the same commits on fresh base
+# images with the system packages upgraded. Each release line is tested as a whole, then every service gets back
+# the tags its releases gave it (N.N.N.N, N.N.N and latest), now on the rebuilt images.
+#
+# Records come from Release Docker Images: Build Docker labels the images with the commits they were built from,
+# the release reads them back and opens a pull request that records the released services in the default branch.
+# In each line a service belongs to the newest release that included it, so a partial release (services_filter)
+# takes over only its own services; latest of a service stays with the release that moved it last.
+# This workflow, the record file and .github/scripts/secure-rebuild.sh are taken from the default branch;
+# everything else (Dockerfile, build.hcl, installer, smoke tests) from the recorded buildtools commit.
+
+run-name: >-
+  Secure rebuild [${{ inputs.dry_run && 'DRY-RUN' || 'PUBLISH' }}]${{ inputs.release_line && format(' {0}', inputs.release_line) || '' }}
+
+on:
+  schedule:
+    - cron: '0 9 * * 1'
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        type: boolean
+        description: 'Dry run: build and test, do not move the release tags'
+        default: false
+      release_line:
+        type: string
+        description: 'Only this release line (ex. 4.1.0). Empty = all recorded lines'
+        required: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: secure-rebuild
+  cancel-in-progress: false
+
+env:
+  CONFIG: .github/secure-rebuild.json
+  # A fork publishes into its own Docker Hub namespace (repository variable DOCKER_NAMESPACE)
+  REPO: ${{ vars.DOCKER_NAMESPACE || (github.repository_owner == 'ONLYOFFICE' && 'onlyoffice' || '') }}
+  DOCKER_IMAGE_PREFIX: 4testing-apps
+
+jobs:
+  prepare:
+    name: Prepare
+    runs-on: ubuntu-latest
+    outputs:
+      releases: ${{ steps.plan.outputs.releases }}
+      build: ${{ steps.plan.outputs.build }}
+      test: ${{ steps.plan.outputs.test }}
+      retag: ${{ steps.plan.outputs.retag }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+
+      # A fork must name its own Docker Hub namespace: the onlyoffice fallback is only for ONLYOFFICE/DocSpace-buildtools
+      - name: Check the Docker Hub namespace
+        run: |
+          [ -n "$REPO" ] || { echo "::error::Set the repository variable DOCKER_NAMESPACE: a fork does not publish to onlyoffice"; exit 1; }
+          echo "Docker Hub namespace: ${REPO}"
+
+      - name: Read the recorded releases
+        id: plan
+        env:
+          LINE: ${{ inputs.release_line }}
+        run: |
+          [ -f "$CONFIG" ] || echo '{"releases": {}}' > "$CONFIG"
+          # Each record also gets the owner/name of its buildtools repository for actions/checkout
+          RELEASES=$(jq -c --arg line "$LINE" '
+            .releases | with_entries(select($line == "" or .value.line == $line))
+            | map_values(. + {repository: (.sources.buildtools.repo | capture("github\\.com/(?<r>.+)\\.git$").r)})
+          ' "$CONFIG")
+          if [ "$RELEASES" = "{}" ]; then
+            [ -z "$LINE" ] || { echo "::error::${LINE} is not recorded in ${CONFIG}"; exit 1; }
+            echo "::notice::No releases are recorded in ${CONFIG}, nothing to rebuild"
+          fi
+          # Oldest first: the retag of the newest release comes last, as on a regular release.
+          # A line is tested with the installer of its newest release.
+          ORDER=$(jq -c 'keys | sort_by(split(".") | map(tonumber))' <<< "$RELEASES")
+          BUILD=$(jq -c '[.[] as $r | ("dotnet", "node", "java", "other") | {release: $r, group: .}]' <<< "$ORDER")
+          TEST=$(jq -c --argjson releases "$RELEASES" '
+            [group_by($releases[.].line)[] | {line: $releases[.[-1]].line, release: .[-1]} as $t
+             | ("standalone", "microservices") | $t + {mode: .}]' <<< "$ORDER")
+          {
+            echo "releases=${RELEASES}"
+            echo "build=${BUILD}"
+            echo "test=${TEST}"
+            echo "retag=${ORDER}"
+          } >> "$GITHUB_OUTPUT"
+          {
+            echo "| Release tag | Line | Source build | latest | Services | Commits |"
+            echo "|---|---|---|---|---|---|"
+            jq -r 'to_entries[] | "| \(.key) | \(.value.line) | \(.value.source_tag) | \(.value.latest | length) | \(.value.services | length) | \(
+              .value.sources | to_entries | map("\(.key) `\(.value.commit[0:10])`") | join(", ")) |"' <<< "$RELEASES"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  build:
+    name: Build ${{ matrix.release }} ${{ matrix.group }}
+    needs: prepare
+    if: ${{ needs.prepare.outputs.releases != '{}' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    strategy:
+      fail-fast: false
+      matrix:
+        include: ${{ fromJSON(needs.prepare.outputs.build) }}
+    env:
+      RELEASE: ${{ toJSON(fromJSON(needs.prepare.outputs.releases)[matrix.release]) }}
+    steps:
+      - name: Checkout the released buildtools commit
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          repository: ${{ fromJSON(needs.prepare.outputs.releases)[matrix.release].repository }}
+          ref: ${{ fromJSON(needs.prepare.outputs.releases)[matrix.release].sources.buildtools.commit }}
+          persist-credentials: false
+
+      # A commit from before the source pinning would ignore the *_COMMIT arguments and build the branch tips
+      - name: Check that the release supports the secure rebuild
+        run: |
+          if ! grep -q '^ARG BUILDTOOLS_COMMIT=' install/docker/build/Dockerfile || ! grep -q 'GIT_REF' .github/scripts/docker-utils.sh; then
+            echo "::error::Buildtools $(git rev-parse --short HEAD) of ${{ matrix.release }} predates the secure rebuild (no pinned commits in its Dockerfile)"
+            exit 1
+          fi
+
+      # The released services of this group; "other" takes those outside the dotnet, node and java groups (standalone)
+      - name: Select the services
+        id: targets
+        env:
+          GROUP: ${{ matrix.group }}
+          DOCKER_TAG: none
+        run: |
+          cd install/docker
+          if [ "$GROUP" = other ]; then
+            GROUPED=$(docker buildx bake -f build/build.hcl --print dotnet-services node-services java-services 2>/dev/null | jq -c '.target | keys')
+            TARGETS=$(jq -r --argjson grouped "$GROUPED" '.services - $grouped | join(" ")' <<< "$RELEASE")
+          else
+            GROUPED=$(docker buildx bake -f build/build.hcl --print "${GROUP}-services" 2>/dev/null | jq -c '.target | keys')
+            TARGETS=$(jq -r --argjson grouped "$GROUPED" '[.services[] | select(IN($grouped[]))] | join(" ")' <<< "$RELEASE")
+          fi
+          echo "targets=${TARGETS}" >> "$GITHUB_OUTPUT"
+          echo "${GROUP}: ${TARGETS:-nothing to rebuild}"
+
+      - name: Checkout the CI scripts
+        if: ${{ steps.targets.outputs.targets != '' }}
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          path: ci
+          sparse-checkout: .github/scripts
+          persist-credentials: false
+
+      - name: Set up QEMU
+        if: ${{ steps.targets.outputs.targets != '' }}
+        uses: docker/setup-qemu-action@99012661954931238ded8c8b007157a8430204e1 # v4
+
+      - name: Setup BuildKit with /mnt support
+        if: ${{ steps.targets.outputs.targets != '' }}
+        run: |
+          docker rm -f buildkitd || true
+          STORAGE_ARGS=()
+          if mountpoint -q /mnt; then
+            sudo mkdir -p /mnt/buildkit && sudo chmod 777 /mnt/buildkit
+            STORAGE_ARGS=(-v /mnt/buildkit:/var/lib/buildkit)
+          fi
+          docker run -d --name buildkitd --privileged --network host "${STORAGE_ARGS[@]}" moby/buildkit:buildx-stable-1 --addr tcp://0.0.0.0:1234
+          docker buildx create --name builder --driver remote tcp://127.0.0.1:1234 --use
+          docker buildx inspect --bootstrap
+
+      - name: Login to DockerHub
+        if: ${{ steps.targets.outputs.targets != '' }}
+        uses: docker/login-action@8aa5831fb8d48d8f76594c7ddde61ae58019f550 # v4
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Rebuild ${{ matrix.group }}
+        if: ${{ steps.targets.outputs.targets != '' }}
+        timeout-minutes: 150
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          TARGETS: ${{ steps.targets.outputs.targets }}
+        run: |
+          SOURCE_TAG=$(jq -r .source_tag <<< "$RELEASE")
+          SOURCE_ARGS=$(bash ci/.github/scripts/secure-rebuild.sh bake-args "$(jq -c .sources <<< "$RELEASE")")
+          mapfile -t SOURCE_ARGS <<< "$SOURCE_ARGS"
+          read -ra TARGETS <<< "$TARGETS"
+          # The source tag is <product version>.<build number> of the released build; the application keeps both
+          export DOCKER_TAG="${SOURCE_TAG}-secure"
+          echo "Rebuilding ${TARGETS[*]} of ${SOURCE_TAG} as ${REPO}/${DOCKER_IMAGE_PREFIX}-*:${DOCKER_TAG}"
+          cd install/docker
+          docker buildx bake -f build/build.hcl "${TARGETS[@]}" \
+            --set "*.args.GIT_BRANCH=$(jq -r .sources.buildtools.branch <<< "$RELEASE")" \
+            "${SOURCE_ARGS[@]}" \
+            --set "*.args.PRODUCT_VERSION=${SOURCE_TAG%.*}" \
+            --set "*.args.BUILD_NUMBER=${SOURCE_TAG##*.}" \
+            --set "*.args.SECURITY_UPGRADE=true" \
+            --set "*.platform=linux/amd64,linux/arm64" \
+            --set "*.secrets=id=github_token,env=GITHUB_TOKEN" \
+            --pull --no-cache --sbom=true --provenance=mode=max --push
+
+  # A line is tested as it is published: every service rebuilt from the release of the line that holds it (a service
+  # the line never released comes from the nearest older line), installed with what the newest release of the line
+  # shipped with (installer, Compose files, docker-utils.sh and smoke tests)
+  test:
+    name: Test ${{ matrix.line }} ${{ matrix.mode }}
+    needs: [prepare, build]
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      matrix:
+        include: ${{ fromJSON(needs.prepare.outputs.test) }}
+    env:
+      RELEASES: ${{ needs.prepare.outputs.releases }}
+      LINE: ${{ matrix.line }}
+    steps:
+      - name: Checkout the buildtools commit of the newest release
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          repository: ${{ fromJSON(needs.prepare.outputs.releases)[matrix.release].repository }}
+          ref: ${{ fromJSON(needs.prepare.outputs.releases)[matrix.release].sources.buildtools.commit }}
+          persist-credentials: false
+
+      - name: Free disk space
+        run: sudo bash .github/scripts/free-disk-space-linux.sh
+
+      - name: Login to DockerHub
+        uses: docker/login-action@8aa5831fb8d48d8f76594c7ddde61ae58019f550 # v4
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      # The installer runs onlyoffice/apps-* images: the rebuilt ones are pulled and tagged <line>-secure under
+      # those names, so the installer finds them locally, whatever namespace they were pushed to
+      - name: Pull the rebuilt images
+        run: |
+          # Lines up to this one, oldest first: a newer line overrides an older one, records of one line do not overlap
+          OWNERS=$(jq -c --arg line "$LINE" '
+            ($line | split(".") | map(tonumber)) as $l
+            | [.[] | select((.line | split(".") | map(tonumber)) <= $l)] | sort_by(.line | split(".") | map(tonumber))
+            | [.[] | .source_tag as $s | .services[] | {key: ., value: $s}] | from_entries
+          ' <<< "$RELEASES")
+          IMAGES=$(cd install/docker && DOCKER_TAG=none docker buildx bake -f build/build.hcl --print 2>/dev/null \
+            | jq -r '.target | to_entries[] | "\(.key) \(.value.tags[0] | sub(":none$"; ""))"')
+          while read -r TARGET IMAGE; do
+            SOURCE_TAG=$(jq -r --arg t "$TARGET" '.[$t] // empty' <<< "$OWNERS")
+            [ -n "$SOURCE_TAG" ] || { echo "::error::${TARGET} is not recorded for ${LINE} or an older line"; exit 1; }
+            docker pull -q "${IMAGE}:${SOURCE_TAG}-secure"
+            docker tag "${IMAGE}:${SOURCE_TAG}-secure" "onlyoffice/${IMAGE#*/4testing-}:${LINE}-secure"
+          done <<< "$IMAGES"
+          echo "DOCKER_TAG=${LINE}-secure" >> "$GITHUB_ENV"
+
+      - name: Install
+        env:
+          IS_4TESTING: 'false'
+          GIT_REF: ${{ fromJSON(needs.prepare.outputs.releases)[matrix.release].sources.buildtools.commit }}
+        run: bash .github/scripts/docker-utils.sh test-install "-dm ${{ matrix.mode }}"
+
+      - name: Check services
+        run: |
+          bash .github/scripts/docker-utils.sh check-services auto
+          bash .github/scripts/docker-utils.sh status
+
+      - name: Smoke test
+        env:
+          LICENSE: ${{ secrets.LICENSE_ENTERPRISE }}
+        run: bash .github/scripts/docker-utils.sh smoke-test
+
+      - name: Log audit
+        run: bash .github/scripts/docker-utils.sh log-audit
+
+      - name: Summary
+        if: ${{ always() }}
+        env:
+          JOB_STATUS: ${{ job.status }}
+        run: bash .github/scripts/docker-utils.sh summary
+
+      - name: Logs on failure
+        if: ${{ failure() }}
+        run: bash .github/scripts/docker-utils.sh logs 30
+
+  retag:
+    name: Retag ${{ matrix.release }}
+    needs: [prepare, build, test]
+    if: ${{ !inputs.dry_run }}
+    runs-on: ubuntu-latest
+    strategy:
+      # One release after another, the oldest first
+      max-parallel: 1
+      matrix:
+        release: ${{ fromJSON(needs.prepare.outputs.retag) }}
+    env:
+      RELEASE: ${{ toJSON(fromJSON(needs.prepare.outputs.releases)[matrix.release]) }}
+      RELEASE_TAG: ${{ matrix.release }}
+    steps:
+      - name: Checkout the released buildtools commit
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          repository: ${{ fromJSON(needs.prepare.outputs.releases)[matrix.release].repository }}
+          ref: ${{ fromJSON(needs.prepare.outputs.releases)[matrix.release].sources.buildtools.commit }}
+          persist-credentials: false
+
+      - name: Login to DockerHub
+        uses: docker/login-action@8aa5831fb8d48d8f76594c7ddde61ae58019f550 # v4
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Move the release tags of its services to the rebuilt images
+        run: |
+          LINE=$(jq -r .line <<< "$RELEASE")
+          DOCKER_TAG="$(jq -r .source_tag <<< "$RELEASE")-secure"
+          export DOCKER_TAG
+          read -ra TARGETS <<< "$(jq -r '.services | join(" ")' <<< "$RELEASE")"
+          # The installer finds a release through apps, apps-api and apps-dotnet: they are moved last
+          IMAGES=$(cd install/docker && docker buildx bake -f build/build.hcl --print "${TARGETS[@]}" 2>/dev/null \
+            | jq -r '.target | to_entries[] | "\(.key) \(.value.tags[0])"' \
+            | awk '{print ($2 ~ /4testing-apps(-api|-dotnet)?:/ ? 1 : 0) " " $0}' | sort | cut -d' ' -f2-)
+          LATEST_COUNT=0
+          while read -r TARGET IMAGE; do
+            RELEASE_IMAGE="${IMAGE%:*}"
+            RELEASE_IMAGE="${RELEASE_IMAGE/\/4testing-//}"
+            TAGS=(--tag "${RELEASE_IMAGE}:${RELEASE_TAG}" --tag "${RELEASE_IMAGE}:${LINE}")
+            if jq -e --arg t "$TARGET" '.latest | index($t)' <<< "$RELEASE" >/dev/null; then
+              TAGS+=(--tag "${RELEASE_IMAGE}:latest")
+              LATEST_COUNT=$((LATEST_COUNT + 1))
+            fi
+            echo "${IMAGE} -> ${TAGS[*]//--tag /}"
+            for ATTEMPT in 1 2 3; do
+              docker buildx imagetools create "${TAGS[@]}" "$IMAGE" && break
+              [ "$ATTEMPT" -lt 3 ] || { echo "::error::Could not retag ${IMAGE}"; exit 1; }
+              sleep 30
+            done
+          done <<< "$IMAGES"
+          echo "### ${RELEASE_TAG}: ${RELEASE_TAG} and ${LINE} of ${#TARGETS[@]} services, latest of ${LATEST_COUNT}, moved to the ${DOCKER_TAG} rebuild" >> "$GITHUB_STEP_SUMMARY"

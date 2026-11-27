@@ -29,10 +29,20 @@ ARG BUILD_PATH="/var/www"
 ARG PRODUCT_VERSION=0.0.0
 ARG BUILD_NUMBER=0
 ARG DEBUG_INFO="true"
+# Exact commits (secure-rebuild.sh bake-args): when set, these are built instead of the branch tips
+ARG BUILDTOOLS_COMMIT=""
+ARG SERVER_COMMIT=""
+ARG CLIENT_COMMIT=""
+ARG PLUGINS_COMMIT=""
+ARG CAMPAIGNS_COMMIT=""
+ARG PLUGINS_BRANCH="master"
+ARG CAMPAIGNS_BRANCH="master"
 
 ARG BUILDTOOLS_REPO="https://github.com/ONLYOFFICE/DocSpace-buildtools.git"
 ARG SERVER_REPO="https://github.com/ONLYOFFICE/DocSpace-Server.git"
 ARG CLIENT_REPO="https://github.com/ONLYOFFICE/DocSpace-Client.git"
+ARG PLUGINS_REPO="https://github.com/ONLYOFFICE/docspace-plugins.git"
+ARG CAMPAIGNS_REPO="https://github.com/ONLYOFFICE/ASC.Web.Campaigns.git"
 
 RUN set -eux; \
     apt-get update; \
@@ -40,8 +50,9 @@ RUN set -eux; \
     git curl; \
     rm -rf /var/lib/apt/lists/*
 
+# The branch tip invalidates the cached clone below; pinned commits do that through their build arguments
 RUN --mount=type=secret,id=github_token,env=GITHUB_TOKEN sh -ec '\
-    curl --retry 3 --retry-delay 2 --retry-connrefused -fsSL \
+    [ -n "${BUILDTOOLS_COMMIT}" ] || curl --retry 3 --retry-delay 2 --retry-connrefused -fsSL \
       -H "Accept: application/vnd.github+json" \
       ${GITHUB_TOKEN:+-H "Authorization: Bearer ${GITHUB_TOKEN}"} \
       "https://api.github.com/repos/ONLYOFFICE/DocSpace-buildtools/git/refs/heads/${BUILDTOOLS_BRANCH:-$GIT_BRANCH}" -o version.json'
@@ -61,13 +72,34 @@ RUN <<'EOF'
         git clone ${EXTRA_OPTS} -b "${BRANCH}" "${REPO}" "${DEST}"
     }
 
+    # Fetches one exact commit; the branch is checked out under its name for debuginfo.py
+    git_clone_commit() {
+        local REPO=$1 DEST=$2 BRANCH=$3 COMMIT=$4
+        [[ "${COMMIT}" =~ ^[0-9a-f]{40}$ ]] || { echo "Invalid commit for ${REPO}: '${COMMIT}'" >&2; return 1; }
+        git init -q "${DEST}"
+        git -C "${DEST}" remote add origin "${REPO}"
+        git -C "${DEST}" fetch -q --depth 30 origin "${COMMIT}"
+        git -C "${DEST}" checkout -q -B "${BRANCH}" "${COMMIT}"
+        git -C "${DEST}" submodule update -q --init --recursive --depth 1
+    }
+
     PIDS=()
+    if [ -n "${BUILDTOOLS_COMMIT}" ]; then
+        git_clone_commit "${BUILDTOOLS_REPO}" "${SRC_PATH}/buildtools" "${BUILDTOOLS_BRANCH:-$GIT_BRANCH}" "${BUILDTOOLS_COMMIT}" & PIDS+=($!)
+        git_clone_commit "${SERVER_REPO}"     "${SRC_PATH}/server"     "${SERVER_BRANCH:-$GIT_BRANCH}"     "${SERVER_COMMIT}" & PIDS+=($!)
+        git_clone_commit "${CLIENT_REPO}"     "${SRC_PATH}/client"     "${CLIENT_BRANCH:-$GIT_BRANCH}"     "${CLIENT_COMMIT}" & PIDS+=($!)
+        git_clone_commit "${PLUGINS_REPO}"    "${SRC_PATH}/plugins"    "${PLUGINS_BRANCH}"                 "${PLUGINS_COMMIT}" & PIDS+=($!)
+        git_clone_commit "${CAMPAIGNS_REPO}"  "${SRC_PATH}/campaigns"  "${CAMPAIGNS_BRANCH}"               "${CAMPAIGNS_COMMIT}" & PIDS+=($!)
+        for PID in "${PIDS[@]}"; do wait "${PID}" || exit 1; done
+        exit 0
+    fi
+
     DEPTH=$([[ "${DEBUG_INFO,,}" =~ ^(true|1|yes)$ ]] && echo 30 || echo 1)
     git_clone "${BUILDTOOLS_REPO}" "${SRC_PATH}/buildtools" "--recurse-submodules --depth ${DEPTH}" "$FALLBACK_BRANCH" "$BUILDTOOLS_BRANCH" & PIDS+=($!)
     git_clone "${SERVER_REPO}"     "${SRC_PATH}/server"     "--recurse-submodules --depth ${DEPTH}" "$FALLBACK_BRANCH" "$SERVER_BRANCH" & PIDS+=($!)
     git_clone "${CLIENT_REPO}"     "${SRC_PATH}/client"     "--recurse-submodules --depth ${DEPTH}" "$FALLBACK_BRANCH" "$CLIENT_BRANCH" & PIDS+=($!)
-    git_clone https://github.com/ONLYOFFICE/docspace-plugins.git "${SRC_PATH}/plugins" "--depth 1" master & PIDS+=($!)
-    git_clone https://github.com/ONLYOFFICE/ASC.Web.Campaigns.git "${SRC_PATH}/campaigns" "--depth 1" master & PIDS+=($!)
+    git_clone "${PLUGINS_REPO}" "${SRC_PATH}/plugins" "--depth 1" "${PLUGINS_BRANCH}" & PIDS+=($!)
+    git_clone "${CAMPAIGNS_REPO}" "${SRC_PATH}/campaigns" "--depth 1" "${CAMPAIGNS_BRANCH}" & PIDS+=($!)
 
     for PID in "${PIDS[@]}"; do wait "${PID}" || exit 1; done
 EOF
@@ -272,6 +304,9 @@ RUN mkdir -p ${SRC_PATH}/publish/services/ASC.Identity.Registration && \
     rm -rf ${SRC_PATH}/server /tmp/m2
 
 FROM $DOTNET_RUN AS dotnetrun
+ARG SECURITY_UPGRADE=false
+# Secure rebuild: the system packages of the base image are brought up to date
+RUN if [ "${SECURITY_UPGRADE}" = true ]; then apt-get update && DEBIAN_FRONTEND=noninteractive apt-get -y upgrade && rm -rf /var/lib/apt/lists/*; fi
 ARG BUILD_PATH
 ARG SRC_PATH
 ARG TARGETARCH
@@ -304,6 +339,9 @@ ARG TARGETARCH
 COPY --from=build-dotnet-store --chown=onlyoffice:onlyoffice ${SRC_PATH}/publish-${TARGETARCH}/dotnetstore ${BUILD_PATH}/dotnetstore
 
 FROM node:${NODE_VERSION} AS noderun
+ARG SECURITY_UPGRADE=false
+# Secure rebuild: the system packages of the base image are brought up to date
+RUN if [ "${SECURITY_UPGRADE}" = true ]; then apt-get update && DEBIAN_FRONTEND=noninteractive apt-get -y upgrade && rm -rf /var/lib/apt/lists/*; fi
 ARG BUILD_PATH
 ARG SRC_PATH
 ENV BUILD_PATH=${BUILD_PATH}
@@ -327,6 +365,9 @@ EXPOSE 5050
 ENTRYPOINT ["python3", "/usr/bin/docker-entrypoint.py"]
 
 FROM eclipse-temurin:${JAVA_RUN_VERSION} AS javarun
+ARG SECURITY_UPGRADE=false
+# Secure rebuild: the system packages of the base image are brought up to date
+RUN if [ "${SECURITY_UPGRADE}" = true ]; then apt-get update && DEBIAN_FRONTEND=noninteractive apt-get -y upgrade && rm -rf /var/lib/apt/lists/*; fi
 ARG BUILD_PATH
 ARG SRC_PATH
 ENV BUILD_PATH=${BUILD_PATH}
@@ -385,6 +426,9 @@ RUN set -eu; \
 
 ## Nginx image ##
 FROM openresty/openresty:${OPENRESTY_VERSION}-bookworm AS router
+ARG SECURITY_UPGRADE=false
+# Secure rebuild: the system packages of the base image are brought up to date
+RUN if [ "${SECURITY_UPGRADE}" = true ]; then apt-get update && DEBIAN_FRONTEND=noninteractive apt-get -y upgrade && rm -rf /var/lib/apt/lists/*; fi
 ARG SRC_PATH
 ARG BUILD_PATH
 ARG COUNT_WORKER_CONNECTIONS=1024

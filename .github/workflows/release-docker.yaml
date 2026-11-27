@@ -43,14 +43,18 @@ jobs:
     runs-on: ubuntu-latest
     environment: release
     steps:
-    - name: Check the release branch
+    - name: Check the release branch and namespace
+      env:
+        REPO: ${{ github.event.inputs.repo }}
+        NAMESPACE: ${{ vars.DOCKER_NAMESPACE || (github.repository_owner == 'ONLYOFFICE' && 'onlyoffice' || '') }}
       run: |
         # Only a stable branch may publish release images
         [[ "${GITHUB_REF_NAME}" == master || "${GITHUB_REF_NAME}" == release/* || "${GITHUB_REF_NAME}" == hotfix/* ]] || { echo "::error::A release can be started only from master, release/* or hotfix/*, not from ${GITHUB_REF_NAME}"; exit 1 ; }
+        # A release publishes only into the namespace of this repository (the DOCKER_NAMESPACE variable in a fork)
+        [ -n "${NAMESPACE}" ] || { echo "::error::Set the repository variable DOCKER_NAMESPACE: a fork does not publish to onlyoffice"; exit 1; }
+        [ "${REPO}" = "${NAMESPACE}" ] || { echo "::error::repo is ${REPO}, but this repository publishes to ${NAMESPACE}"; exit 1; }
 
     - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
-      with:
-        repository: 'ONLYOFFICE/DocSpace-buildtools'
 
     - name: Login to DockerHub
       uses: docker/login-action@8aa5831fb8d48d8f76594c7ddde61ae58019f550 # v4
@@ -72,6 +76,70 @@ jobs:
       run: |
         chmod +x ${GITHUB_WORKSPACE}/.github/scripts/release-docker.sh
         ${GITHUB_WORKSPACE}/.github/scripts/release-docker.sh
+
+  secure-rebuild-config:
+    name: "Record the release for the secure rebuild"
+    needs: docker-release
+    if: ${{ needs.docker-release.result == 'success' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+
+      # The rebuild list lives in the default branch, where the scheduled Secure Rebuild reads it
+      - name: Checkout the default branch
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+          path: default-branch
+
+      - name: Login to DockerHub
+        uses: docker/login-action@8aa5831fb8d48d8f76594c7ddde61ae58019f550 # v4
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      # The record holds the released services (the same targets the release took) and the commits of their build
+      - name: Record the released services and their sources
+        env:
+          CONFIG: default-branch/.github/secure-rebuild.json
+          REPO: ${{ github.event.inputs.repo }}
+          DOCKER_IMAGE_PREFIX: 4testing-apps
+          DOCKER_TAG: ${{ github.event.inputs.source_version }}
+          RELEASE_VERSION: ${{ github.event.inputs.release_version }}
+          SERVICES_FILTER: ${{ github.event.inputs.services_filter }}
+        run: |
+          FILTER_TARGETS=()
+          [ -z "$SERVICES_FILTER" ] || read -ra FILTER_TARGETS <<< "$SERVICES_FILTER"
+          BAKE_PRINT=$(cd install/docker && docker buildx bake -f build/build.hcl --print "${FILTER_TARGETS[@]}" 2>/dev/null)
+          bash .github/scripts/secure-rebuild.sh record-release "$RELEASE_VERSION" "$BAKE_PRINT"
+
+      - name: Open a pull request
+        working-directory: default-branch
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BASE: ${{ github.event.repository.default_branch }}
+          RELEASE_VERSION: ${{ github.event.inputs.release_version }}
+          SERVICES_FILTER: ${{ github.event.inputs.services_filter }}
+        run: |
+          git add .github/secure-rebuild.json
+          if git diff --cached --quiet; then
+            echo "${RELEASE_VERSION} is already recorded"
+            exit 0
+          fi
+          BRANCH="secure-rebuild-config/${RELEASE_VERSION}"
+          TITLE="Record DocSpace ${RELEASE_VERSION} for the secure rebuild"
+          git switch -c "$BRANCH"
+          git -c user.name="github-actions[bot]" -c user.email="41898282+github-actions[bot]@users.noreply.github.com" commit -q -m "$TITLE"
+          git push --force origin "HEAD:refs/heads/${BRANCH}"
+          if [ -z "$(gh pr list --head "$BRANCH" --base "$BASE" --state open --json url --jq '.[].url')" ]; then
+            gh pr create --head "$BRANCH" --base "$BASE" --title "$TITLE" \
+              --body "Released \`${RELEASE_VERSION}\` from \`${{ github.event.inputs.source_version }}\`${SERVICES_FILTER:+ (services: \`${SERVICES_FILTER}\`)}. After the merge DocSpace Secure Rebuild rebuilds these services from the recorded commits."
+          fi
 
   trigger-offline-release:
     needs: docker-release

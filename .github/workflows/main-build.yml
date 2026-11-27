@@ -36,7 +36,8 @@ on:
 
 env:
   DOCKER_PATH: "/install/docker"
-  REPO: "onlyoffice"
+  # A fork publishes into its own Docker Hub namespace (repository variable DOCKER_NAMESPACE)
+  REPO: ${{ vars.DOCKER_NAMESPACE || (github.repository_owner == 'ONLYOFFICE' && 'onlyoffice' || '') }}
   DOCKER_IMAGE_PREFIX: "4testing-apps"
   DOCKERFILE: "Dockerfile"
 
@@ -44,14 +45,48 @@ permissions:
   contents: read
 
 jobs:
+  # The commits are resolved once, so the four image groups are built from the same sources;
+  # they are recorded in the image labels, Release Docker Images saves them for the secure rebuild
+  sources:
+    name: Sources
+    runs-on: ubuntu-latest
+    outputs:
+      sources: ${{ steps.resolve.outputs.sources }}
+    steps:
+      # A fork must name its own Docker Hub namespace: the onlyoffice fallback is only for ONLYOFFICE/DocSpace-buildtools
+      - name: Check the Docker Hub namespace
+        run: |
+          [ -n "$REPO" ] || { echo "::error::Set the repository variable DOCKER_NAMESPACE: a fork does not publish to onlyoffice"; exit 1; }
+          echo "Docker Hub namespace: ${REPO}"
+
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+
+      - name: Resolve source commits
+        id: resolve
+        env:
+          BRANCHES: ${{ toJSON(github.event.client_payload.branches || fromJson(inputs.branches || format('[{0}]', toJSON(github.ref_name)))) }}
+          BRANCH_BUILDTOOLS: ${{ inputs.branch-buildtools }}
+          BRANCH_SERVER: ${{ inputs.branch-server }}
+          BRANCH_CLIENT: ${{ inputs.branch-client }}
+        run: |
+          SOURCES='{}'
+          while IFS= read -r BRANCH; do
+            BRANCH_SOURCES=$(bash .github/scripts/secure-rebuild.sh resolve-sources "$BRANCH" "$BRANCH_BUILDTOOLS" "$BRANCH_SERVER" "$BRANCH_CLIENT")
+            SOURCES=$(jq -c --arg branch "$BRANCH" --argjson sources "$BRANCH_SOURCES" '.[$branch] = $sources' <<< "$SOURCES")
+          done < <(jq -r '.[]' <<< "$BRANCHES")
+          jq . <<< "$SOURCES"
+          echo "sources=${SOURCES}" >> "$GITHUB_OUTPUT"
+
   build:
     name: ${{ matrix.service }} (${{ matrix.branch }})
+    needs: sources
     runs-on: ubuntu-latest
     env:
       BASE_BRANCH: ${{ matrix.branch }}
-      BUILDTOOLS_BRANCH: ${{ inputs.branch-buildtools || matrix.branch }}
-      SERVER_BRANCH: ${{ inputs.branch-server }}
-      CLIENT_BRANCH: ${{ inputs.branch-client }}
+      SOURCES: ${{ toJSON(fromJSON(needs.sources.outputs.sources)[matrix.branch]) }}
       TAG_BRANCH: >-
         ${{ inputs.branch-buildtools && inputs.branch-buildtools != matrix.branch && inputs.branch-buildtools ||
             inputs.branch-server && inputs.branch-server != matrix.branch && inputs.branch-server ||
@@ -64,7 +99,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
-          ref: ${{ env.BUILDTOOLS_BRANCH }}
+          ref: ${{ fromJSON(needs.sources.outputs.sources)[matrix.branch].buildtools.commit }}
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@99012661954931238ded8c8b007157a8430204e1 # v4
@@ -98,12 +133,13 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ github.token }}
         run: |
+          # The pinned commits as build arguments, and as image labels for the release
+          SOURCE_ARGS=$(bash .github/scripts/secure-rebuild.sh bake-args "$SOURCES")
+          mapfile -t SOURCE_ARGS <<< "$SOURCE_ARGS"
           cd .${DOCKER_PATH}
           docker buildx bake -f build/build.hcl ${{ matrix.service }}-services \
             --set "*.args.GIT_BRANCH=${BASE_BRANCH}" \
-            --set "*.args.BUILDTOOLS_BRANCH=${BUILDTOOLS_BRANCH}" \
-            --set "*.args.SERVER_BRANCH=${SERVER_BRANCH}" \
-            --set "*.args.CLIENT_BRANCH=${CLIENT_BRANCH}" \
+            "${SOURCE_ARGS[@]}" \
             --set "*.args.PRODUCT_VERSION=${PRODUCT_VERSION}" \
             --set "*.args.BUILD_NUMBER=${{ github.run_number }}" \
             --set "*.platform=linux/amd64,linux/arm64" \

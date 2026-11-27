@@ -147,11 +147,12 @@ docker compose --env-file .env -f apps.yml -f build/dev/apps.overcome.yml up -d
 
 | Workflow | Purpose |
 |----------|---------|
-| `main-build.yml` | Multi-arch Docker build (dotnet + node + java) |
+| `main-build.yml` | Multi-arch Docker build (dotnet + node + java + standalone); the `sources` job pins the commits of all source repositories once (`.github/scripts/secure-rebuild.sh`), they become build args and `com.onlyoffice.docspace.*` image labels; `DOCKER_NAMESPACE` variable = Docker Hub namespace |
 | `build_packages.yml` | DEB/RPM packages |
 | `config-build.yml` | Config-triggered builds |
 | `cron-build.yml` | Nightly scheduled builds |
-| `release-docker.yaml` | Production release |
+| `release-docker.yaml` | Production release; records the released services (bake targets), their source commits (read from the image labels) and the services it moved latest for in `.github/secure-rebuild.json` through a PR to the default branch, one record per release tag; released services leave the older records of their line only |
+| `secure-rebuild.yml` | Weekly (and manual, `dry_run`) rebuild of every recorded release from the same commits on fresh base images (`SECURITY_UPGRADE`); each line is tested as a whole, then every service gets its release tags (N.N.N.N, N.N.N, latest) back on the rebuilt image |
 | `offline-release.yml` | Offline package build |
 | `oci-release.yml` | Container registry release |
 | `readme-update.yml` | Update OS support list in README |

@@ -102,10 +102,23 @@ run_installer() {
   local PATCHED_SCRIPT; PATCHED_SCRIPT=$(mktemp --suffix=.sh)
   cp "${GITHUB_WORKSPACE}/install/OneClickInstall/install-Docker.sh" "$PATCHED_SCRIPT"
 
+  # -gb downloads the installer scripts and Compose files from GitHub: take them from the repository under test
+  # (a fork, or a commit that ONLYOFFICE/DocSpace-buildtools does not have)
+  local REPOSITORY="${GITHUB_REPOSITORY:-}"
+  if [ -n "$REPOSITORY" ]; then
+    local CONTENT; CONTENT=$(<"$PATCHED_SCRIPT")
+    CONTENT=${CONTENT//'raw.githubusercontent.com/${PACKAGE_SYSNAME^^}/${LEGACY_PRODUCT}-buildtools'/"raw.githubusercontent.com/${REPOSITORY}"}
+    CONTENT=${CONTENT//'codeload.github.com/${PACKAGE_SYSNAME}/${LEGACY_PRODUCT}-buildtools'/"codeload.github.com/${REPOSITORY}"}
+    printf '%s\n' "$CONTENT" > "$PATCHED_SCRIPT"
+    [ "$(grep -cF ".com/${REPOSITORY}/" "$PATCHED_SCRIPT")" -ge 2 ] || \
+      { echo "::error::install-Docker.sh no longer has the GitHub download URLs this script rewrites."; exit 1; }
+  fi
+
   # compose prints every layer of a pull as a separate line when the output is not a terminal, and sudo drops the variable without env
   # The mode arguments are split on whitespace only, so nothing in them is ever evaluated by the shell
   local MODE_ARGS; read -r -a MODE_ARGS <<< "$*"
-  local INSTALL_ARGS=(-skiphc true -noni true -gb "$GITHUB_REF_NAME" "${MODE_ARGS[@]}")
+  # GIT_REF: the commit under test when the workflow branch is not it (Secure Rebuild)
+  local INSTALL_ARGS=(-skiphc true -noni true -gb "${GIT_REF:-$GITHUB_REF_NAME}" "${MODE_ARGS[@]}")
   [ "${IS_4TESTING:-true}" != "false" ] && \
     INSTALL_ARGS+=(-s 4testing- -un "$DOCKERHUB_USERNAME_PAT" -p "$DOCKERHUB_TOKEN_PAT")
   [ -n "${DOCKER_TAG:-}" ] && INSTALL_ARGS+=(-dsv "$DOCKER_TAG")
